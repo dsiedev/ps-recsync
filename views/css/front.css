@@ -1,0 +1,120 @@
+/**
+ * RecSync Frontend Styles
+ * Styles for recommendation widgets and buttons
+ */
+
+/* Product Actions Container */
+.recsync-product-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 0 8px 8px;
+}
+
+/* Button Styles */
+.recsync-product-actions .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 36px;
+}
+
+/* View Product Button */
+.recsync-view-btn {
+    background-color: #007bff;
+    color: white;
+}
+
+.recsync-view-btn:hover {
+    background-color: #0056b3;
+    color: white;
+    text-decoration: none;
+}
+
+/* Add to Cart Button */
+.recsync-add-to-cart-btn {
+    background-color: #28a745;
+    color: white;
+}
+
+.recsync-add-to-cart-btn:hover {
+    background-color: #1e7e34;
+    color: white;
+    text-decoration: none;
+}
+
+.recsync-add-to-cart-btn:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+}
+
+/* Button Icons */
+.recsync-product-actions .btn i {
+    font-size: 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .recsync-product-actions {
+        gap: 6px;
+        margin-top: 10px;
+        padding: 0 6px 6px;
+    }
+    
+    .recsync-product-actions .btn {
+        padding: 6px 10px;
+        font-size: 13px;
+        min-height: 32px;
+    }
+    
+    .recsync-product-actions .btn i {
+        font-size: 14px;
+    }
+}
+
+/* Carousel Specific Styles */
+.recsync-carousel .recsync-product-actions {
+    padding: 0 4px 4px;
+}
+
+/* Grid Specific Styles */
+.recsync-grid .recsync-product-actions {
+    padding: 0 6px 6px;
+}
+
+/* Loading State */
+.recsync-add-to-cart-btn.loading {
+    background-color: #6c757d;
+    cursor: wait;
+}
+
+.recsync-add-to-cart-btn.loading i {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Success State */
+.recsync-add-to-cart-btn.success {
+    background-color: #28a745;
+    animation: pulse 0.5s ease-in-out;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}

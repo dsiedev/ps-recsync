@@ -1,0 +1,170 @@
+/* RecSync Admin Styles */
+
+/* General form styling */
+.form-horizontal .form-group {
+    margin-bottom: 1rem;
+}
+
+.form-horizontal .control-label {
+    font-weight: 600;
+    color: #333;
+    padding-top: 0.5rem;
+}
+
+.form-horizontal .form-control {
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+}
+
+.form-horizontal .form-control:focus {
+    border-color: #007cba;
+    box-shadow: 0 0 0 0.2rem rgba(0, 124, 186, 0.25);
+}
+
+/* Switch styling */
+.form-horizontal .switch {
+    display: flex !important;
+    align-items: flex-start !important;
+    margin-bottom: 0.5rem !important;
+}
+
+.form-horizontal .switch input[type="radio"] {
+    margin-right: 0.5rem !important;
+    margin-top: 0.25rem !important;
+    flex-shrink: 0 !important;
+}
+
+.form-horizontal .switch label {
+    margin-bottom: 0 !important;
+    font-weight: normal !important;
+    cursor: pointer !important;
+    line-height: 1.4 !important;
+    padding-top: 0.1rem !important;
+}
+
+/* Radio button styling */
+.form-horizontal .radio {
+    display: flex !important;
+    align-items: flex-start !important;
+    margin-bottom: 0.5rem !important;
+}
+
+.form-horizontal .radio input[type="radio"] {
+    margin-right: 0.5rem !important;
+    margin-top: 0.25rem !important;
+    flex-shrink: 0 !important;
+}
+
+.form-horizontal .radio label {
+    margin-bottom: 0 !important;
+    font-weight: normal !important;
+    cursor: pointer !important;
+    line-height: 1.4 !important;
+    padding-top: 0.1rem !important;
+}
+
+/* Switch container styling */
+.form-horizontal .form-group .switch {
+    display: flex !important;
+    align-items: flex-start !important;
+    margin-bottom: 0.5rem !important;
+}
+
+.form-horizontal .form-group .switch input[type="radio"] {
+    margin: 0 !important;
+    margin-right: 0.5rem !important;
+    margin-top: 0.25rem !important;
+    flex-shrink: 0 !important;
+}
+
+.form-horizontal .form-group .switch label {
+    margin: 0 !important;
+    font-weight: normal !important;
+    cursor: pointer !important;
+    display: inline-block !important;
+    line-height: 1.4 !important;
+    padding-top: 0.1rem !important;
+}
+
+/* API Key field styling */
+.recsync-api-key-group {
+    position: relative;
+}
+
+.recsync-api-key-group .form-control,
+.recsync-api-key-group input[name="RECSYNC_API_KEY"],
+.recsync-api-key-group .fixed-width-lg {
+    font-family: 'Courier New', monospace !important;
+    letter-spacing: 0.1em !important;
+}
+
+/* Copy button styling using PrestaShop pattern */
+#copyApiKeyBtn {
+    margin-left: 5px;
+    padding: 6px 8px;
+    border-radius: 3px;
+    min-width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#copyApiKeyBtn i {
+    margin: 0;
+    font-size: 14px;
+}
+
+#copyApiKeyBtn.copied {
+    background-color: #28a745 !important;
+    border-color: #28a745 !important;
+    color: white !important;
+}
+
+#copyApiKeyBtn.copied i::before {
+    content: "\f00c"; /* FontAwesome checkmark */
+}
+
+/* Tooltip styling */
+.recsync-tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.recsync-tooltip .recsync-tooltiptext {
+    visibility: hidden;
+    width: 120px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -60px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.8rem;
+}
+
+.recsync-tooltip:hover .recsync-tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #copyApiKeyBtn {
+        margin-left: 5px;
+        min-width: 36px;
+        height: 36px;
+    }
+    
+    #copyApiKeyBtn i {
+        font-size: 16px;
+    }
+}

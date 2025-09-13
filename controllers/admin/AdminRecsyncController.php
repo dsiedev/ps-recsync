@@ -89,7 +89,7 @@ class AdminRecsyncController extends ModuleAdminController
             'api_timeout' => Configuration::get('RECSYNC_API_TIMEOUT'),
             'api_retries' => Configuration::get('RECSYNC_API_RETRIES'),
             'tls_verify' => Configuration::get('RECSYNC_TLS_VERIFY'),
-            'widget_title' => Configuration::get('RECSYNC_WIDGET_TITLE') ?: 'Recomendados para ti',
+            'widget_title' => Configuration::get('RECSYNC_WIDGET_TITLE') ?: '',
             'widget_limit' => Configuration::get('RECSYNC_WIDGET_LIMIT'),
             'widget_layout' => Configuration::get('RECSYNC_WIDGET_LAYOUT'),
             'widget_columns' => Configuration::get('RECSYNC_WIDGET_COLUMNS'),

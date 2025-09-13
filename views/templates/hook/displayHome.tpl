@@ -9,13 +9,11 @@
         <div class="container">
             <div class="row">
                 <div class="col-12">
-                    <h2 class="recsync-title">
-                        {if isset($recsync_widget_title) && $recsync_widget_title}
+                    {if isset($recsync_widget_title) && $recsync_widget_title && $recsync_widget_title|trim != ''}
+                        <h2 class="recsync-title">
                             {$recsync_widget_title|escape:'html':'UTF-8'}
-                        {else}
-                            {l s='Recomendados para ti' mod='recsync'}
-                        {/if}
-                    </h2>
+                        </h2>
+                    {/if}
                     
                     <div class="recsync-products">
                         {if isset($recsync_layout) && $recsync_layout == 'carousel'}

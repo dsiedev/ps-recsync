@@ -454,7 +454,7 @@ class Recsync extends Module
             // Assign to Smarty with safe defaults
             $this->context->smarty->assign([
                 'recsync_products' => $products,
-                'recsync_widget_title' => Configuration::get('RECSYNC_WIDGET_TITLE') ?: 'Recomendados para ti',
+                'recsync_widget_title' => Configuration::get('RECSYNC_WIDGET_TITLE') ?: null,
                 'recsync_widget_limit' => Configuration::get('RECSYNC_WIDGET_LIMIT') ?: 12,
                 'recsync_widget_columns' => Configuration::get('RECSYNC_WIDGET_COLUMNS') ?: 4,
                 'recsync_layout' => Configuration::get('RECSYNC_WIDGET_LAYOUT') ?: 'grid',

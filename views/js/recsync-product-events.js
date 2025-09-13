@@ -11,9 +11,9 @@
     const RECSYNC_CONFIG = {
         enabled: window.RECSYNC_ANALYTICS_CONFIG ? window.RECSYNC_ANALYTICS_CONFIG.enabled : true,
         telemetryEnabled: window.RECSYNC_ANALYTICS_CONFIG ? window.RECSYNC_ANALYTICS_CONFIG.telemetryEnabled : true,
-        clientId: window.RECSYNC_ANALYTICS_CONFIG ? window.RECSYNC_ANALYTICS_CONFIG.clientId : "4852605350",
+        clientId: window.RECSYNC_ANALYTICS_CONFIG ? window.RECSYNC_ANALYTICS_CONFIG.clientId : "",
         apiUrl: window.RECSYNC_ANALYTICS_CONFIG ? window.RECSYNC_ANALYTICS_CONFIG.apiUrl : "https://api.recsync.com",
-        apiKey: window.RECSYNC_ANALYTICS_CONFIG ? window.RECSYNC_ANALYTICS_CONFIG.apiKey : "REC-ITPMEKBN",
+        apiKey: window.RECSYNC_ANALYTICS_CONFIG ? window.RECSYNC_ANALYTICS_CONFIG.apiKey : "",
         debugEnabled: window.RECSYNC_ANALYTICS_CONFIG ? window.RECSYNC_ANALYTICS_CONFIG.debugEnabled : true,
         analyticsUrl: "http://127.0.0.1:3000/analytics.js"
     };
@@ -1556,6 +1556,9 @@
             
             if (RECSYNC_CONFIG.debugEnabled) {
                 console.log("RecSync: Sending to API", url, eventData);
+                console.log("RecSync: Using Client ID:", RECSYNC_CONFIG.clientId);
+                console.log("RecSync: Using API Key:", RECSYNC_CONFIG.apiKey ? "Set (" + RECSYNC_CONFIG.apiKey.length + " chars)" : "Empty");
+                console.log("RecSync: Authorization Header:", "Bearer " + RECSYNC_CONFIG.clientId + ":" + RECSYNC_CONFIG.apiKey);
             }
             
             fetch(url, {

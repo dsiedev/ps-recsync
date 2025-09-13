@@ -1,14 +1,11 @@
-/* RecSync - Smart Recommendations Module */
+/* RecSync - Recomendaciones Inteligentes */
 
 .recsync-widget {
     margin: 2rem 0;
-    padding: 1.5rem;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem 0;
 }
 
-.recsync-widget-title {
+.recsync-title {
     font-size: 1.5rem;
     font-weight: 600;
     color: #333;
@@ -17,7 +14,7 @@
     position: relative;
 }
 
-.recsync-widget-title::after {
+.recsync-title::after {
     content: '';
     position: absolute;
     bottom: -8px;
@@ -29,183 +26,288 @@
     border-radius: 2px;
 }
 
-/* Grid Layout */
-.recsync-grid {
-    display: grid;
-    gap: 1.5rem;
-    margin-top: 1rem;
+/* Ensure compatibility with PrestaShop product styles */
+.recsync-products .products {
+    margin: 0;
 }
 
-.recsync-grid.columns-2 {
-    grid-template-columns: repeat(2, 1fr);
+/* Add more spacing between products */
+.recsync-widget .product {
+    margin-bottom: 2rem;
 }
 
-.recsync-grid.columns-3 {
-    grid-template-columns: repeat(3, 1fr);
+.recsync-widget .product:last-child {
+    margin-bottom: 0;
 }
 
-.recsync-grid.columns-4 {
-    grid-template-columns: repeat(4, 1fr);
-}
-
-.recsync-grid.columns-5 {
-    grid-template-columns: repeat(5, 1fr);
-}
-
-.recsync-grid.columns-6 {
-    grid-template-columns: repeat(6, 1fr);
-}
-
-/* Product Card */
-.recsync-product {
-    background: #fff;
+/* Override any conflicting styles for products in RecSync widget */
+.recsync-widget .product-miniature {
     border: 1px solid #e9ecef;
     border-radius: 8px;
-    overflow: hidden;
     transition: all 0.3s ease;
-    position: relative;
-    cursor: pointer;
+    background: #fff;
+    overflow: hidden;
 }
 
-.recsync-product:hover {
+.recsync-widget .product-miniature:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-    border-color: #007bff;
 }
 
-.recsync-product-image {
+.recsync-widget .thumbnail-container {
     position: relative;
-    width: 100%;
-    height: 200px;
-    overflow: hidden;
-    background: #f8f9fa;
 }
 
-.recsync-product-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+.recsync-widget .thumbnail-top {
+    position: relative;
+    overflow: hidden;
+}
+
+.recsync-widget .product-thumbnail img {
     transition: transform 0.3s ease;
 }
 
-.recsync-product:hover .recsync-product-image img {
+.recsync-widget .product-miniature:hover .product-thumbnail img {
     transform: scale(1.05);
 }
 
-.recsync-product-badge {
+/* Additional RecSync-specific enhancements */
+.recsync-widget .highlighted-informations {
     position: absolute;
-    top: 10px;
-    right: 10px;
-    background: #28a745;
-    color: white;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    z-index: 2;
-}
-
-.recsync-product-content {
-    padding: 1rem;
-}
-
-.recsync-product-name {
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: #333;
-    margin-bottom: 0.5rem;
-    line-height: 1.3;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.recsync-product-price {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #007bff;
-    margin-bottom: 0.75rem;
-}
-
-.recsync-product-score {
-    position: absolute;
-    top: 10px;
-    left: 10px;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    font-weight: 500;
+    opacity: 0;
+    transition: opacity 0.3s ease;
     z-index: 2;
+}
+
+.recsync-widget .product-miniature:hover .highlighted-informations {
+    opacity: 1;
+}
+
+.recsync-widget .quick-view {
+    color: white;
+    text-decoration: none;
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid white;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.recsync-widget .quick-view:hover {
+    background: white;
+    color: #333;
+    text-decoration: none;
+}
+
+.recsync-widget .quick-view i {
+    margin-right: 0.5rem;
 }
 
 /* Carousel Layout */
 .recsync-carousel {
     position: relative;
     overflow: hidden;
-    margin-top: 1rem;
+    margin: 2rem 0;
+    padding: 1.5rem 50px 0 50px; /* Space for navigation buttons, no bottom padding */
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
-.recsync-carousel-container {
-    display: flex;
-    transition: transform 0.3s ease;
-    gap: 1.5rem;
-}
+    .recsync-carousel-container {
+        display: flex;
+        transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        gap: 0.75rem;
+    }
 
-.recsync-carousel .recsync-product {
-    flex: 0 0 calc(25% - 1.125rem);
-    min-width: 200px;
-}
+    .recsync-carousel .recsync-product {
+        flex: 0 0 calc(25% - 0.5625rem);
+        min-width: 250px;
+        padding: 1rem 0.25rem;
+    }
 
+/* Navigation Buttons - Configurable */
 .recsync-carousel-nav {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.95);
     border: none;
     border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
+    width: 50px;
+    height: 50px;
+    display: none; /* Hidden by default */
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.3s ease;
-    z-index: 3;
+    z-index: 10;
+    box-shadow: none;
+    outline: none;
 }
 
 .recsync-carousel-nav:hover {
-    background: #fff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-50%) scale(1.1);
+    outline: none;
+}
+
+.recsync-carousel-nav:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.recsync-carousel-nav:active {
+    transform: translateY(-50%) scale(0.95);
+    outline: none;
+    box-shadow: none;
 }
 
 .recsync-carousel-nav.prev {
-    left: 10px;
+    left: 15px;
 }
 
 .recsync-carousel-nav.next {
-    right: 10px;
+    right: 15px;
 }
 
 .recsync-carousel-nav::before {
     content: '';
-    width: 8px;
-    height: 8px;
-    border: 2px solid #333;
+    width: 12px;
+    height: 12px;
+    border: 3px solid #333;
     border-top: none;
     border-right: none;
+    transition: border-color 0.3s ease;
+}
+
+.recsync-carousel-nav:hover::before {
+    border-color: #007bff;
 }
 
 .recsync-carousel-nav.prev::before {
     transform: rotate(45deg);
-    margin-left: 3px;
+    margin-left: 4px;
 }
 
 .recsync-carousel-nav.next::before {
     transform: rotate(225deg);
-    margin-right: 3px;
+    margin-right: 4px;
+}
+
+/* Show arrows when enabled */
+.recsync-carousel.show-arrows .recsync-carousel-nav {
+    display: flex;
+}
+
+/* Show indicators when enabled */
+.recsync-carousel.show-indicators .recsync-carousel-indicators {
+    display: flex;
+}
+
+/* Carousel Indicators - Hidden by default */
+.recsync-carousel-indicators {
+    display: none;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 0 0 0.5rem 0;
+}
+
+.recsync-carousel-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(0, 123, 255, 0.3);
+    border: none;
+    outline: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    flex-shrink: 0;
+}
+
+.recsync-carousel-indicator:hover {
+    background: rgba(0, 123, 255, 0.6);
+    outline: none;
+}
+
+.recsync-carousel-indicator:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.recsync-carousel-indicator:active {
+    outline: none;
+    box-shadow: none;
+}
+
+.recsync-carousel-indicator.active {
+    background: #0056b3;
+    outline: none;
+    box-shadow: none;
+}
+
+/* Carousel Product Enhancements */
+.recsync-carousel .recsync-product .product-miniature {
+    margin-bottom: 0;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.recsync-carousel .recsync-product .product-miniature:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive Carousel */
+@media (max-width: 1200px) {
+    .recsync-carousel .recsync-product {
+        flex: 0 0 calc(33.333% - 1rem);
+        min-width: 220px;
+    }
+}
+
+@media (max-width: 768px) {
+    .recsync-carousel {
+        padding: 0 40px;
+    }
+    
+    .recsync-carousel .recsync-product {
+        flex: 0 0 calc(50% - 0.75rem);
+        min-width: 200px;
+    }
+    
+    .recsync-carousel-nav {
+        display: none;
+    }
+}
+
+@media (max-width: 576px) {
+    .recsync-carousel {
+        padding: 0 35px;
+        margin-top: 0.5rem;
+    }
+    
+    .recsync-carousel-container {
+        gap: 1rem;
+        padding: 1rem 0;
+    }
+    
+    .recsync-carousel .recsync-product {
+        flex: 0 0 calc(100% - 0.5rem);
+        min-width: 180px;
+    }
+    
+    .recsync-carousel-nav {
+        display: none;
+    }
 }
 
 /* Loading State */
@@ -246,71 +348,46 @@
     opacity: 0.5;
 }
 
-/* Responsive Design */
-@media (max-width: 1200px) {
-    .recsync-grid.columns-6 {
-        grid-template-columns: repeat(4, 1fr);
-    }
-    
-    .recsync-grid.columns-5 {
-        grid-template-columns: repeat(4, 1fr);
-    }
-}
-
-@media (max-width: 992px) {
-    .recsync-grid.columns-4,
-    .recsync-grid.columns-5,
-    .recsync-grid.columns-6 {
-        grid-template-columns: repeat(3, 1fr);
-    }
-    
-    .recsync-carousel .recsync-product {
-        flex: 0 0 calc(33.333% - 1rem);
-    }
-}
-
+/* Responsive Design - Enhanced for PrestaShop compatibility */
 @media (max-width: 768px) {
     .recsync-widget {
         margin: 1rem 0;
-        padding: 1rem;
+        padding: 1rem 0;
     }
     
-    .recsync-widget-title {
+    .recsync-title {
         font-size: 1.25rem;
     }
     
-    .recsync-grid.columns-3,
-    .recsync-grid.columns-4,
-    .recsync-grid.columns-5,
-    .recsync-grid.columns-6 {
-        grid-template-columns: repeat(2, 1fr);
+    /* Ensure proper spacing on mobile */
+    .recsync-widget .products {
+        margin: 0 -0.5rem;
     }
     
-    .recsync-carousel .recsync-product {
-        flex: 0 0 calc(50% - 0.75rem);
-    }
-    
-    .recsync-product-image {
-        height: 150px;
+    .recsync-widget .product {
+        padding: 0 0.5rem;
+        margin-bottom: 1.5rem;
     }
 }
 
 @media (max-width: 576px) {
-    .recsync-grid.columns-2,
-    .recsync-grid.columns-3,
-    .recsync-grid.columns-4,
-    .recsync-grid.columns-5,
-    .recsync-grid.columns-6 {
-        grid-template-columns: 1fr;
+    .recsync-widget {
+        padding: 0.5rem 0;
     }
     
-    .recsync-carousel .recsync-product {
-        flex: 0 0 calc(100% - 0.5rem);
+    .recsync-title {
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
     }
     
-    .recsync-carousel-nav {
-        width: 35px;
-        height: 35px;
+    /* Enhanced mobile product spacing */
+    .recsync-widget .products {
+        margin: 0 -0.25rem;
+    }
+    
+    .recsync-widget .product {
+        padding: 0 0.25rem;
+        margin-bottom: 1.25rem;
     }
 }
 

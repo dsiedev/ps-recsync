@@ -1,12 +1,18 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8"?>
 <module>
     <name>recsync</name>
-    <displayName><![CDATA[RecSync - Smart Recommendations]]></displayName>
-    <version><![CDATA[1.0.0]]></version>
-    <description><![CDATA[Muestra productos recomendados basados en la API de analítica/recomendaciones con fallback inteligente.]]></description>
-    <author><![CDATA[DSIELAB]]></author>
-    <tab><![CDATA[front_office_features]]></tab>
+    <displayName><![CDATA[RecSync - Recomendaciones Inteligentes]]></displayName>
+    <version>1.0.0</version>
+    <description><![CDATA[Sistema de recomendaciones inteligentes con fallback automático]]></description>
+    <author>DSIELAB</author>
+    <tab>front_office_features</tab>
+    <confirmUninstall><![CDATA[¿Está seguro de que desea desinstalar este módulo?]]></confirmUninstall>
     <is_configurable>1</is_configurable>
     <need_instance>0</need_instance>
     <limited_countries></limited_countries>
+    <default_language>es</default_language>
+    <supported_languages>
+        <language>es</language>
+        <language>en</language>
+    </supported_languages>
 </module>

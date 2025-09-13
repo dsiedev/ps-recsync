@@ -1,5 +1,5 @@
 /**
- * RecSync - Smart Recommendations Module
+ * RecSync - Recomendaciones Inteligentes
  * JavaScript functionality for telemetry tracking and UI interactions
  */
 
@@ -110,7 +110,7 @@
         }
     }
 
-    // Carousel functionality
+    // Enhanced Carousel functionality
     class RecSyncCarousel {
         constructor(container) {
             this.container = container;
@@ -119,6 +119,10 @@
             this.currentIndex = 0;
             this.productsPerView = this.calculateProductsPerView();
             this.maxIndex = Math.max(0, this.products.length - this.productsPerView);
+            this.totalSlides = Math.ceil(this.products.length / this.productsPerView);
+            this.autoplayInterval = null;
+            this.autoplayDelay = 5000; // 5 seconds
+            this.isTransitioning = false;
             
             this.init();
         }
@@ -139,23 +143,33 @@
          */
         init() {
             this.createNavigation();
+            this.createIndicators();
             this.updateNavigation();
+            this.updateIndicators();
             this.bindEvents();
             this.updateDisplay();
+            this.startAutoplay();
         }
 
         /**
          * Create navigation buttons
          */
         createNavigation() {
+            // Only create navigation buttons if arrows are enabled
+            if (!this.container.classList.contains('show-arrows')) {
+                return;
+            }
+
             const prevBtn = document.createElement('button');
             prevBtn.className = 'recsync-carousel-nav prev';
             prevBtn.setAttribute('aria-label', 'Previous products');
+            prevBtn.setAttribute('type', 'button');
             prevBtn.addEventListener('click', () => this.prev());
 
             const nextBtn = document.createElement('button');
             nextBtn.className = 'recsync-carousel-nav next';
             nextBtn.setAttribute('aria-label', 'Next products');
+            nextBtn.setAttribute('type', 'button');
             nextBtn.addEventListener('click', () => this.next());
 
             this.container.appendChild(prevBtn);
@@ -166,11 +180,51 @@
         }
 
         /**
+         * Create indicators
+         */
+        createIndicators() {
+            // Only create indicators if they are enabled
+            if (!this.container.classList.contains('show-indicators')) {
+                return;
+            }
+
+            if (this.totalSlides <= 1) return;
+
+            const indicatorsContainer = document.createElement('div');
+            indicatorsContainer.className = 'recsync-carousel-indicators';
+            
+            for (let i = 0; i < this.totalSlides; i++) {
+                const indicator = document.createElement('button');
+                indicator.className = 'recsync-carousel-indicator';
+                indicator.setAttribute('type', 'button');
+                indicator.setAttribute('aria-label', `Go to slide ${i + 1}`);
+                indicator.addEventListener('click', () => this.goToSlide(i));
+                indicatorsContainer.appendChild(indicator);
+            }
+            
+            this.container.appendChild(indicatorsContainer);
+            this.indicators = indicatorsContainer.querySelectorAll('.recsync-carousel-indicator');
+        }
+
+        /**
          * Update navigation state
          */
         updateNavigation() {
-            this.prevBtn.style.display = this.currentIndex > 0 ? 'flex' : 'none';
-            this.nextBtn.style.display = this.currentIndex < this.maxIndex ? 'flex' : 'none';
+            if (this.prevBtn && this.nextBtn) {
+                this.prevBtn.style.display = this.currentIndex > 0 ? 'flex' : 'none';
+                this.nextBtn.style.display = this.currentIndex < this.maxIndex ? 'flex' : 'none';
+            }
+        }
+
+        /**
+         * Update indicators
+         */
+        updateIndicators() {
+            if (!this.indicators) return;
+
+            this.indicators.forEach((indicator, index) => {
+                indicator.classList.toggle('active', index === this.currentIndex);
+            });
         }
 
         /**
@@ -182,11 +236,20 @@
             window.addEventListener('resize', () => {
                 clearTimeout(resizeTimeout);
                 resizeTimeout = setTimeout(() => {
+                    const oldProductsPerView = this.productsPerView;
                     this.productsPerView = this.calculateProductsPerView();
                     this.maxIndex = Math.max(0, this.products.length - this.productsPerView);
-                    this.currentIndex = Math.min(this.currentIndex, this.maxIndex);
+                    this.totalSlides = Math.ceil(this.products.length / this.productsPerView);
+                    
+                    // Recalculate current index if needed
+                    if (oldProductsPerView !== this.productsPerView) {
+                        this.currentIndex = Math.min(this.currentIndex, this.maxIndex);
+                        this.recreateIndicators();
+                    }
+                    
                     this.updateDisplay();
                     this.updateNavigation();
+                    this.updateIndicators();
                 }, 250);
             });
 
@@ -200,24 +263,104 @@
                     this.next();
                 }
             });
+
+            // Pause autoplay on hover
+            this.container.addEventListener('mouseenter', () => this.stopAutoplay());
+            this.container.addEventListener('mouseleave', () => this.startAutoplay());
+
+            // Handle touch/swipe events
+            this.addTouchSupport();
         }
 
         /**
-         * Update display
+         * Add touch support for mobile
+         */
+        addTouchSupport() {
+            let startX = 0;
+            let startY = 0;
+            let distX = 0;
+            let distY = 0;
+
+            this.container.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+            });
+
+            this.container.addEventListener('touchmove', (e) => {
+                if (!startX || !startY) return;
+                
+                distX = e.touches[0].clientX - startX;
+                distY = e.touches[0].clientY - startY;
+            });
+
+            this.container.addEventListener('touchend', () => {
+                if (!startX || !startY) return;
+
+                // Check if it's a horizontal swipe
+                if (Math.abs(distX) > Math.abs(distY) && Math.abs(distX) > 50) {
+                    if (distX > 0) {
+                        this.prev();
+                    } else {
+                        this.next();
+                    }
+                }
+
+                startX = 0;
+                startY = 0;
+                distX = 0;
+                distY = 0;
+            });
+        }
+
+        /**
+         * Recreate indicators after resize
+         */
+        recreateIndicators() {
+            if (this.indicators) {
+                const indicatorsContainer = this.indicators[0].parentNode;
+                indicatorsContainer.remove();
+                this.createIndicators();
+            }
+        }
+
+        /**
+         * Update display with smooth transition
          */
         updateDisplay() {
+            if (this.isTransitioning) return;
+            
+            this.isTransitioning = true;
             const translateX = -(this.currentIndex * (100 / this.productsPerView));
             this.containerElement.style.transform = `translateX(${translateX}%)`;
+            
+            setTimeout(() => {
+                this.isTransitioning = false;
+            }, 400);
+        }
+
+        /**
+         * Go to specific slide
+         */
+        goToSlide(index) {
+            if (index >= 0 && index <= this.maxIndex && !this.isTransitioning) {
+                this.currentIndex = index;
+                this.updateDisplay();
+                this.updateNavigation();
+                this.updateIndicators();
+                this.restartAutoplay();
+            }
         }
 
         /**
          * Go to previous slide
          */
         prev() {
-            if (this.currentIndex > 0) {
+            if (this.currentIndex > 0 && !this.isTransitioning) {
                 this.currentIndex--;
                 this.updateDisplay();
                 this.updateNavigation();
+                this.updateIndicators();
+                this.restartAutoplay();
             }
         }
 
@@ -225,10 +368,61 @@
          * Go to next slide
          */
         next() {
-            if (this.currentIndex < this.maxIndex) {
+            if (this.currentIndex < this.maxIndex && !this.isTransitioning) {
                 this.currentIndex++;
                 this.updateDisplay();
                 this.updateNavigation();
+                this.updateIndicators();
+                this.restartAutoplay();
+            } else if (this.currentIndex >= this.maxIndex) {
+                // Loop to beginning
+                this.currentIndex = 0;
+                this.updateDisplay();
+                this.updateNavigation();
+                this.updateIndicators();
+                this.restartAutoplay();
+            }
+        }
+
+        /**
+         * Start autoplay
+         */
+        startAutoplay() {
+            if (this.totalSlides <= 1) return;
+            
+            this.stopAutoplay();
+            this.autoplayInterval = setInterval(() => {
+                this.next();
+            }, this.autoplayDelay);
+        }
+
+        /**
+         * Stop autoplay
+         */
+        stopAutoplay() {
+            if (this.autoplayInterval) {
+                clearInterval(this.autoplayInterval);
+                this.autoplayInterval = null;
+            }
+        }
+
+        /**
+         * Restart autoplay
+         */
+        restartAutoplay() {
+            this.stopAutoplay();
+            this.startAutoplay();
+        }
+
+        /**
+         * Destroy carousel
+         */
+        destroy() {
+            this.stopAutoplay();
+            if (this.prevBtn) this.prevBtn.remove();
+            if (this.nextBtn) this.nextBtn.remove();
+            if (this.indicators) {
+                this.indicators[0].parentNode.remove();
             }
         }
     }

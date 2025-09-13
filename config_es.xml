@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <module>
     <name>recsync</name>
-    <displayName><![CDATA[RecSync - Smart Recommendations]]></displayName>
+    <displayName><![CDATA[RecSync - Recomendaciones Inteligentes]]></displayName>
     <version><![CDATA[1.0.0]]></version>
     <description><![CDATA[Muestra productos recomendados basados en la API de anal&iacute;tica/recomendaciones con fallback inteligente.]]></description>
     <author><![CDATA[DSIELAB]]></author>

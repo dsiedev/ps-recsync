@@ -7,7 +7,7 @@ window.RECSYNC_ANALYTICS_CONFIG = {
     telemetryEnabled: true,
     clientId: "{$recsync_client_id|escape:'html':'UTF-8'}",
     apiUrl: "{$recsync_api_url}",
-    apiKey: "REC-ITPMEKBN",
+    apiKey: "{$recsync_api_key|escape:'html':'UTF-8'}",
     debugEnabled: {if $recsync_debug_enabled}true{else}false{/if},
     moduleUrl: "{$recsync_module_url}",
     // Customer data from backend

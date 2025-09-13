@@ -22,7 +22,7 @@ class Recsync extends Module
 
         parent::__construct();
 
-        $this->displayName = $this->l('RecSync - Smart Recommendations');
+        $this->displayName = $this->l('RecSync - Recomendaciones Inteligentes');
         $this->description = $this->l('Muestra productos recomendados basados en la API de analítica/recomendaciones con fallback inteligente.');
         
         // Load dependencies
@@ -41,14 +41,16 @@ class Recsync extends Module
             $this->registerHook('actionPresentProduct') &&
             $this->registerHook('actionValidateOrder') &&
             $this->installConfiguration() &&
-            $this->installDatabase();
+            $this->installDatabase() &&
+            $this->installAdminTab();
     }
 
     public function uninstall()
     {
         return parent::uninstall() &&
             $this->uninstallConfiguration() &&
-            $this->uninstallDatabase();
+            $this->uninstallDatabase() &&
+            $this->uninstallAdminTab();
     }
 
     /**
@@ -56,17 +58,27 @@ class Recsync extends Module
      */
     private function installConfiguration()
     {
+        // Get Spanish language ID as default
+        $spanishLanguageId = Language::getIdByIso('es');
+        if (!$spanishLanguageId) {
+            // Fallback to default language if Spanish is not available
+            $spanishLanguageId = Configuration::get('PS_LANG_DEFAULT');
+        }
+
         $configs = [
             // API Connection
-            'RECSYNC_API_URL' => 'https://api.tudominio.com/v1/recommendations',
+            'RECSYNC_API_URL' => 'https://api.recsync.com',
             'RECSYNC_CLIENT_ID' => '',
             'RECSYNC_API_KEY' => '',
             'RECSYNC_API_TIMEOUT' => self::API_TIMEOUT_DEFAULT,
             'RECSYNC_API_RETRIES' => self::MAX_RETRIES,
             'RECSYNC_TLS_VERIFY' => 1,
             
-            // Widget Configuration
-            'RECSYNC_WIDGET_TITLE' => 'Recomendados para ti',
+            // Widget Configuration - Spanish as default
+            'RECSYNC_WIDGET_TITLE' => [
+                $spanishLanguageId => 'Recomendados para ti',
+                Language::getIdByIso('en') => 'Recommended for you'
+            ],
             'RECSYNC_WIDGET_LIMIT' => 12,
             'RECSYNC_WIDGET_LAYOUT' => 'grid',
             'RECSYNC_WIDGET_COLUMNS' => 4,
@@ -200,7 +212,8 @@ class Recsync extends Module
     public function hookDisplayHome($params)
     {
         // Debug logging
-        if (Configuration::get('RECSYNC_DEBUG_ENABLED')) {
+        $debugEnabled = Configuration::get('RECSYNC_DEBUG_ENABLED');
+        if ($debugEnabled) {
             PrestaShopLogger::addLog(
                 'RecSync Debug: hookDisplayHome called',
                 1,
@@ -210,10 +223,11 @@ class Recsync extends Module
             );
         }
         
-        if (!Configuration::get('RECSYNC_ENABLED')) {
-            if (Configuration::get('RECSYNC_DEBUG_ENABLED')) {
+        $moduleEnabled = Configuration::get('RECSYNC_ENABLED');
+        if (!$moduleEnabled) {
+            if ($debugEnabled) {
                 PrestaShopLogger::addLog(
-                    'RecSync Debug: Module not enabled',
+                    'RecSync Debug: Module not enabled (RECSYNC_ENABLED = ' . ($moduleEnabled ? 'true' : 'false') . ')',
                     1,
                     null,
                     'Recsync',
@@ -224,12 +238,31 @@ class Recsync extends Module
         }
 
         try {
+            if ($debugEnabled) {
+                PrestaShopLogger::addLog(
+                    'RecSync Debug: Starting hookDisplayHome execution',
+                    1,
+                    null,
+                    'Recsync',
+                    $this->id
+                );
+            }
+            
             $apiClient = new RecsyncApiClient();
             $cache = new RecsyncCache();
             $fallback = new RecsyncFallback();
             
             // Get context
             $context = $this->buildContext();
+            if ($debugEnabled) {
+                PrestaShopLogger::addLog(
+                    'RecSync Debug: Context built successfully',
+                    1,
+                    null,
+                    'Recsync',
+                    $this->id
+                );
+            }
             
             // Try to get recommendations from cache first
             $cacheKey = $this->generateCacheKey($context);
@@ -295,9 +328,9 @@ class Recsync extends Module
             // Map external IDs to PrestaShop products
             $products = $this->mapProducts($recommendations);
             
-            if (Configuration::get('RECSYNC_DEBUG_ENABLED')) {
+            if ($debugEnabled) {
                 PrestaShopLogger::addLog(
-                    'RecSync Debug: Products mapped - count: ' . count($products),
+                    'RecSync Debug: Products mapped - count: ' . count($products) . '. Raw recommendations structure: ' . print_r($recommendations, true),
                     1,
                     null,
                     'Recsync',
@@ -395,9 +428,9 @@ class Recsync extends Module
             }
             
             if (empty($products)) {
-                if (Configuration::get('RECSYNC_DEBUG_ENABLED')) {
+                if ($debugEnabled) {
                     PrestaShopLogger::addLog(
-                        'RecSync Debug: No products to display (including fallback)',
+                        'RecSync Debug: No products to display (including fallback). Final products count: ' . count($products),
                         1,
                         null,
                         'Recsync',
@@ -407,19 +440,33 @@ class Recsync extends Module
                 return '';
             }
             
+            // Debug logging for products and layout
+            if ($debugEnabled) {
+                PrestaShopLogger::addLog(
+                    'RecSync Debug: Found ' . count($products) . ' products. Layout: ' . Configuration::get('RECSYNC_WIDGET_LAYOUT') . '. Widget enabled: ' . ($moduleEnabled ? 'true' : 'false'),
+                    1,
+                    null,
+                    'Recsync',
+                    $this->id
+                );
+            }
+            
             // Assign to Smarty with safe defaults
             $this->context->smarty->assign([
                 'recsync_products' => $products,
-                'recsync_widget_title' => Configuration::get('RECSYNC_WIDGET_TITLE') ?: $this->l('Recommended for you'),
+                'recsync_widget_title' => Configuration::get('RECSYNC_WIDGET_TITLE') ?: 'Recomendados para ti',
                 'recsync_widget_limit' => Configuration::get('RECSYNC_WIDGET_LIMIT') ?: 12,
                 'recsync_widget_columns' => Configuration::get('RECSYNC_WIDGET_COLUMNS') ?: 4,
                 'recsync_layout' => Configuration::get('RECSYNC_WIDGET_LAYOUT') ?: 'grid',
+                'recsync_carousel_arrows' => Configuration::get('RECSYNC_CAROUSEL_ARROWS') ?: false,
+                'recsync_carousel_indicators' => Configuration::get('RECSYNC_CAROUSEL_INDICATORS') !== false ? Configuration::get('RECSYNC_CAROUSEL_INDICATORS') : true,
                 'recsync_tracking_id' => isset($recommendations['tracking']['request_id']) 
                     ? $recommendations['tracking']['request_id'] 
                     : 'fallback_' . time(),
                 'recsync_widget_id' => 'home_main',
                 'recsync_telemetry_enabled' => Configuration::get('RECSYNC_TELEMETRY_ENABLED') ?: false,
                 'recsync_debug_enabled' => Configuration::get('RECSYNC_DEBUG_ENABLED') ?: false,
+                'recsync_enabled' => Configuration::get('RECSYNC_ENABLED') ?: false,
                 'recsync_module_url' => $this->_path ?: '',
                 'recsync_has_products' => !empty($products),
                 'recsync_product_count' => count($products),
@@ -467,6 +514,22 @@ class Recsync extends Module
         $apiUrl = Configuration::get('RECSYNC_API_URL');
         $debugEnabled = Configuration::get('RECSYNC_DEBUG_ENABLED');
         
+        // Obtener y desencriptar la API key
+        $apiKey = '';
+        $encryptedApiKey = Configuration::get('RECSYNC_API_KEY');
+        if (!empty($encryptedApiKey)) {
+            $salt = Configuration::get('RECSYNC_USER_SALT');
+            if (!empty($salt)) {
+                $apiKey = openssl_decrypt(
+                    base64_decode($encryptedApiKey), 
+                    'AES-256-CBC', 
+                    $salt, 
+                    0, 
+                    substr($salt, 0, 16)
+                );
+            }
+        }
+        
         // Obtener customer ID del backend
         $customerId = null;
         $isLoggedIn = false;
@@ -480,6 +543,7 @@ class Recsync extends Module
         $this->context->smarty->assign([
             'recsync_client_id' => $clientId,
             'recsync_api_url' => $apiUrl,
+            'recsync_api_key' => $apiKey,
             'recsync_debug_enabled' => $debugEnabled,
             'recsync_module_url' => $this->_path,
             'recsync_customer_id' => $customerId,
@@ -806,7 +870,7 @@ class Recsync extends Module
         return array_slice($products, 0, $limit);
     }
 
-        /**
+    /**
      * Get product data for display
      */
     private function getProductData($productId)
@@ -823,53 +887,122 @@ class Recsync extends Module
                 return false;
             }
 
-            // Get basic price information from database directly to avoid header issues
-            $priceInfo = Db::getInstance()->getRow("
-                SELECT price, wholesale_price
-                FROM " . _DB_PREFIX_ . "product
-                WHERE id_product = " . (int)$productId
-            );
-
-            if (!$priceInfo) {
-                return false;
+            // Get product with all necessary data
+            $product = new Product($productId, true, $this->context->language->id);
+            
+            // Get product link
+            $productLink = $this->context->link->getProductLink($product);
+            
+            // Get cover image
+            $cover = Image::getCover($productId);
+            $coverImage = null;
+            
+            if ($cover) {
+                $coverImage = [
+                    'bySize' => [
+                        'home_default' => [
+                            'url' => $this->context->link->getImageLink(
+                                $product->link_rewrite[0],
+                                $cover['id_image'],
+                                'home_default'
+                            ),
+                            'width' => 250,
+                            'height' => 250
+                        ],
+                        'large' => [
+                            'url' => $this->context->link->getImageLink(
+                                $product->link_rewrite[0],
+                                $cover['id_image'],
+                                'large_default'
+                            ),
+                            'width' => 800,
+                            'height' => 800
+                        ]
+                    ],
+                    'legend' => isset($cover['legend']) ? $cover['legend'] : $product->name[0]
+                ];
+            } else {
+                // Use no picture image if no cover - use PrestaShop's standard method
+                $coverImage = [
+                    'bySize' => [
+                        'home_default' => [
+                            'url' => $this->context->link->getImageLink(
+                                '',
+                                Context::getContext()->language->iso_code . '-default',
+                                'home_default'
+                            ),
+                            'width' => 250,
+                            'height' => 250
+                        ],
+                        'large' => [
+                            'url' => $this->context->link->getImageLink(
+                                '',
+                                Context::getContext()->language->iso_code . '-default',
+                                'large_default'
+                            ),
+                            'width' => 800,
+                            'height' => 800
+                        ]
+                    ],
+                    'legend' => $product->name[0]
+                ];
             }
 
-            $price = (float)$priceInfo['price'];
-            $regularPrice = $price; // Use same price for now
-            $hasDiscount = false;
+            // Get price information
+            $price = $product->getPrice();
+            $regularPrice = $product->getPriceWithoutReduct();
+            $hasDiscount = ($regularPrice > $price);
+            
+            // Calculate discount percentage
             $discountPercentage = '';
+            if ($hasDiscount && $regularPrice > 0) {
+                $discountPercentage = round((($regularPrice - $price) / $regularPrice) * 100) . '%';
+            }
+
+            // Get product flags
+            $flags = [];
+            if ($hasDiscount) {
+                $flags[] = [
+                    'type' => 'discount',
+                    'label' => $discountPercentage
+                ];
+            }
+            
+            // Check if product is new
+            if ($product->isNew()) {
+                $flags[] = [
+                    'type' => 'new',
+                    'label' => 'Nuevo'
+                ];
+            }
 
             // Validate product name
-            $productName = is_array($product->name) ? reset($product->name) : $product->name;
+            $productName = is_array($product->name) ? $product->name[0] : $product->name;
             if (empty($productName)) {
                 $productName = 'Producto ' . $productId;
             }
 
-            // Return only basic product data to avoid header issues
+            // Get add to cart URL
+            $addToCartUrl = $this->context->link->getAddToCartURL($productId, 0);
+
             return [
                 'id_product' => (int)$productId,
                 'id_product_attribute' => 0,
                 'name' => $productName,
-                'url' => '', // Will be generated in template
-                'price' => $price, // Raw price
-                'regular_price' => $regularPrice, // Raw price
+                'url' => $productLink,
+                'price' => Tools::displayPrice($price),
+                'regular_price' => Tools::displayPrice($regularPrice),
                 'has_discount' => $hasDiscount,
                 'discount_percentage' => $discountPercentage,
+                'discount_type' => $hasDiscount ? 'percentage' : null,
                 'show_price' => true,
-                'add_to_cart_url' => '', // Will be generated in template
-                'cover' => [
-                    'bySize' => [
-                        'home_default' => [
-                            'url' => '', // Will be generated in template
-                            'width' => 250,
-                            'height' => 250
-                        ]
-                    ],
-                    'legend' => $productName
-                ],
+                'add_to_cart_url' => $addToCartUrl,
+                'cover' => $coverImage,
+                'flags' => $flags,
                 'reference' => $product->reference ?: '',
                 'external_id' => $product->reference ?: 'PS_' . $productId,
                 'id_category_default' => (int)$product->id_category_default,
+                'main_variants' => null, // Can be populated if needed
             ];
 
         } catch (Exception $e) {
@@ -932,46 +1065,6 @@ class Recsync extends Module
         }
         
         return $this->displayConfirmation($this->l('Settings updated successfully'));
-    }
-
-    /**
-     * Encrypt API key
-     */
-    private function encryptApiKey($key)
-    {
-        $salt = Configuration::get('RECSYNC_USER_SALT');
-        return base64_encode(openssl_encrypt($key, 'AES-256-CBC', $salt, 0, substr($salt, 0, 16)));
-    }
-
-    /**
-     * Decrypt API key
-     */
-    private function decryptApiKey($encryptedKey)
-    {
-        $salt = Configuration::get('RECSYNC_USER_SALT');
-        return openssl_decrypt(base64_decode($encryptedKey), 'AES-256-CBC', $salt, 0, substr($salt, 0, 16));
-    }
-
-    /**
-     * Check if a value is masked (contains masking characters)
-     */
-    private function isMaskedValue($value)
-    {
-        // Check for common masking characters
-        $maskingChars = ['•', '●', '▪', '▫', '▪', '▫', '*', '·'];
-        
-        foreach ($maskingChars as $char) {
-            if (strpos($value, $char) !== false) {
-                return true;
-            }
-        }
-        
-        // Also check if the value looks like a masked pattern (repeated characters + suffix)
-        if (preg_match('/^[•●▪▫▪▫*·]{4,}[A-Z0-9]{4}$/', $value)) {
-            return true;
-        }
-        
-        return false;
     }
 
     /**
@@ -1107,7 +1200,6 @@ class Recsync extends Module
                         'name' => 'RECSYNC_CATEGORY_WHITELIST',
                         'desc' => $this->l('Comma-separated list of category IDs to include'),
                     ],
-
                 ],
             ],
         ];
@@ -1187,6 +1279,104 @@ class Recsync extends Module
         }
         
         return $helper->generateForm([$form1, $form2]);
+    }
+
+    /**
+     * Encrypt API key
+     */
+    private function encryptApiKey($key)
+    {
+        $salt = Configuration::get('RECSYNC_USER_SALT');
+        return base64_encode(openssl_encrypt($key, 'AES-256-CBC', $salt, 0, substr($salt, 0, 16)));
+    }
+
+    /**
+     * Decrypt API key
+     */
+    private function decryptApiKey($encryptedKey)
+    {
+        $salt = Configuration::get('RECSYNC_USER_SALT');
+        return openssl_decrypt(base64_decode($encryptedKey), 'AES-256-CBC', $salt, 0, substr($salt, 0, 16));
+    }
+
+    /**
+     * Check if a value is masked (contains masking characters)
+     */
+    private function isMaskedValue($value)
+    {
+        // Check for common masking characters
+        $maskingChars = ['•', '●', '▪', '▫', '▪', '▫', '*', '·'];
+        
+        foreach ($maskingChars as $char) {
+            if (strpos($value, $char) !== false) {
+                return true;
+            }
+        }
+        
+        // Also check if the value looks like a masked pattern (repeated characters + suffix)
+        if (preg_match('/^[•●▪▫▪▫*·]{4,}[A-Z0-9]{4}$/', $value)) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Install admin tab
+     */
+    private function installAdminTab()
+    {
+        // Find the Catalog parent tab
+        $catalogTabId = Tab::getIdFromClassName('AdminCatalog');
+        
+        if (!$catalogTabId) {
+            return false;
+        }
+
+        // Create the RecSync admin tab
+        $tab = new Tab();
+        $tab->class_name = 'AdminRecsync';
+        $tab->module = $this->name;
+        $tab->id_parent = $catalogTabId;
+        $tab->position = 100; // Position in the menu
+        
+        // Get Spanish and English language IDs
+        $spanishLanguageId = Language::getIdByIso('es');
+        $englishLanguageId = Language::getIdByIso('en');
+        
+        // Set tab names for all languages with Spanish as default
+        $languages = Language::getLanguages(false);
+        foreach ($languages as $language) {
+            if ($language['iso_code'] == 'es') {
+                $tab->name[$language['id_lang']] = 'Configuración RecSync';
+            } elseif ($language['iso_code'] == 'en') {
+                $tab->name[$language['id_lang']] = 'RecSync Configuration';
+            } else {
+                // Default to Spanish for other languages
+                $tab->name[$language['id_lang']] = 'Configuración RecSync';
+            }
+        }
+        
+        if (!$tab->add()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Uninstall admin tab
+     */
+    private function uninstallAdminTab()
+    {
+        $tabId = Tab::getIdFromClassName('AdminRecsync');
+        
+        if ($tabId) {
+            $tab = new Tab($tabId);
+            return $tab->delete();
+        }
+        
+        return true;
     }
 
     /**

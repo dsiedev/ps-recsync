@@ -1,6 +1,8 @@
 {*
 * RecSync - Recommendations Widget Template
+* Uses standard PrestaShop product structure for consistency
 *}
+
 
 {if isset($recsync_products) && $recsync_products|count > 0}
     <section class="recsync-widget" id="recsync-widget">
@@ -16,93 +18,201 @@
                     </h2>
                     
                     <div class="recsync-products">
-                        <div class="row">
-                            {foreach from=$recsync_products item=product name=recsync_products}
-                                <div class="col-{if isset($recsync_widget_columns)}{12/$recsync_widget_columns}{else}3{/if} col-sm-6 col-md-{if isset($recsync_widget_columns)}{12/$recsync_widget_columns}{else}3{/if} col-lg-{if isset($recsync_widget_columns)}{12/$recsync_widget_columns}{else}3{/if}">
-                                    <article class="product-miniature js-product-miniature" data-id-product="{$product.id_product}" data-id-product-attribute="{$product.id_product_attribute}">
-                                        <div class="thumbnail-container">
-                                            <a href="{$product.url}" class="thumbnail product-thumbnail">
-                                                <img
-                                                    src="{$product.cover.bySize.home_default.url}"
-                                                    alt="{$product.cover.legend}"
-                                                    loading="lazy"
-                                                    width="{$product.cover.bySize.home_default.width}"
-                                                    height="{$product.cover.bySize.home_default.height}"
-                                                />
-                                            </a>
-                                            
-                                            {if $product.discount_percentage}
-                                                <div class="product-flags">
-                                                    <span class="discount-percentage">{$product.discount_percentage}</span>
-                                                </div>
-                                            {/if}
-                                        </div>
-                                        
-                                        <div class="product-description">
-                                            <h3 class="h3 product-title">
-                                                <a href="{$product.url}">{$product.name}</a>
-                                            </h3>
-                                            
-                                            {if $product.show_price}
-                                                <div class="product-price-and-shipping">
-                                                    {if $product.has_discount}
-                                                        <span class="sr-only">{l s='Regular price' d='Shop.Theme.Catalog'}</span>
-                                                        <span class="regular-price">{$product.regular_price}</span>
-                                                        <span class="sr-only">{l s='Price' d='Shop.Theme.Catalog'}</span>
-                                                        <span class="price">{$product.price}</span>
-                                                    {else}
-                                                        <span class="sr-only">{l s='Price' d='Shop.Theme.Catalog'}</span>
-                                                        <span class="price">{$product.price}</span>
-                                                    {/if}
-                                                </div>
-                                            {/if}
-                                            
-                                            <div class="product-actions">
-                                                <form action="{$urls.pages.cart}" method="post" class="add-to-cart-or-refresh">
-                                                    <input type="hidden" name="token" value="{$static_token}">
-                                                    <input type="hidden" name="id_product" value="{$product.id_product}" class="product_page_product_id">
-                                                    <input type="hidden" name="id_customization" value="0" class="product_customization_id">
-                                                    
-                                                    <button
-                                                        class="btn btn-primary add-to-cart"
-                                                        data-button-action="add-to-cart"
-                                                        type="submit"
-                                                        {if !$product.add_to_cart_url}
-                                                            disabled
+                        {if isset($recsync_layout) && $recsync_layout == 'carousel'}
+                            {* Carousel Layout *}
+                            <div class="recsync-carousel{if isset($recsync_carousel_arrows) && $recsync_carousel_arrows} show-arrows{/if}{if isset($recsync_carousel_indicators) && $recsync_carousel_indicators} show-indicators{/if}" data-carousel="true">
+                                <div class="recsync-carousel-container">
+                                    {foreach from=$recsync_products item=product name=recsync_products}
+                                        <div class="recsync-product js-product product" data-id-product="{$product.id_product}">
+                                            <article class="product-miniature js-product-miniature" data-id-product="{$product.id_product}" data-id-product-attribute="{$product.id_product_attribute}">
+                                                <div class="thumbnail-container">
+                                                    <div class="thumbnail-top">
+                                                        {* Product thumbnail using standard PrestaShop structure *}
+                                                        {if $product.cover}
+                                                            <a href="{$product.url}" class="thumbnail product-thumbnail">
+                                                                <img
+                                                                    src="{$product.cover.bySize.home_default.url}"
+                                                                    alt="{if !empty($product.cover.legend)}{$product.cover.legend}{else}{$product.name|truncate:30:'...'}{/if}"
+                                                                    loading="lazy"
+                                                                    data-full-size-image-url="{$product.cover.large.url}"
+                                                                    width="{$product.cover.bySize.home_default.width}"
+                                                                    height="{$product.cover.bySize.home_default.height}"
+                                                                />
+                                                            </a>
+                                                        {else}
+                                                            <a href="{$product.url}" class="thumbnail product-thumbnail">
+                                                                <img
+                                                                    src="{$urls.no_picture_image.bySize.home_default.url}"
+                                                                    loading="lazy"
+                                                                    width="{$urls.no_picture_image.bySize.home_default.width}"
+                                                                    height="{$urls.no_picture_image.bySize.home_default.height}"
+                                                                />
+                                                            </a>
                                                         {/if}
-                                                    >
-                                                        <i class="material-icons shopping-cart"></i>
-                                                        {l s='Add to cart' d='Shop.Theme.Actions'}
-                                                    </button>
-                                                </form>
-                                            </div>
+
+                                                        <div class="highlighted-informations{if !$product.main_variants} no-variants{/if}">
+                                                            {* Quick view button *}
+                                                            <a class="quick-view js-quick-view" href="#" data-link-action="quickview">
+                                                                <i class="material-icons search">&#xE8B6;</i> {l s='Quick view' d='Shop.Theme.Actions'}
+                                                            </a>
+
+                                                            {* Product variants *}
+                                                            {if $product.main_variants}
+                                                                {include file='catalog/_partials/variant-links.tpl' variants=$product.main_variants}
+                                                            {/if}
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="product-description">
+                                                        {* Product name *}
+                                                        <h3 class="h3 product-title">
+                                                            <a href="{$product.url}" content="{$product.url}">{$product.name|truncate:30:'...'}</a>
+                                                        </h3>
+
+                                                        {* Product price and shipping *}
+                                                        {if $product.show_price}
+                                                            <div class="product-price-and-shipping">
+                                                                {if $product.has_discount}
+                                                                    {hook h='displayProductPriceBlock' product=$product type="old_price"}
+                                                                    <span class="regular-price" aria-label="{l s='Regular price' d='Shop.Theme.Catalog'}">{$product.regular_price}</span>
+                                                                    {if $product.discount_type === 'percentage'}
+                                                                        <span class="discount-percentage discount-product">{$product.discount_percentage}</span>
+                                                                    {elseif $product.discount_type === 'amount'}
+                                                                        <span class="discount-amount discount-product">{$product.discount_amount_to_display}</span>
+                                                                    {/if}
+                                                                {/if}
+
+                                                                {hook h='displayProductPriceBlock' product=$product type="before_price"}
+
+                                                                <span class="price" aria-label="{l s='Price' d='Shop.Theme.Catalog'}">
+                                                                    {capture name='custom_price'}{hook h='displayProductPriceBlock' product=$product type='custom_price' hook_origin='products_list'}{/capture}
+                                                                    {if '' !== $smarty.capture.custom_price}
+                                                                        {$smarty.capture.custom_price nofilter}
+                                                                    {else}
+                                                                        {$product.price}
+                                                                    {/if}
+                                                                </span>
+
+                                                                {hook h='displayProductPriceBlock' product=$product type='unit_price'}
+                                                                {hook h='displayProductPriceBlock' product=$product type='weight'}
+                                                            </div>
+                                                        {/if}
+
+                                                        {* Product reviews *}
+                                                        {hook h='displayProductListReviews' product=$product}
+                                                    </div>
+
+                                                    {* Product flags using standard PrestaShop structure *}
+                                                    <ul class="product-flags js-product-flags">
+                                                        {foreach from=$product.flags item=flag}
+                                                            <li class="product-flag {$flag.type}">{$flag.label}</li>
+                                                        {/foreach}
+                                                    </ul>
+                                                </div>
+                                            </article>
                                         </div>
-                                    </article>
+                                    {/foreach}
                                 </div>
-                            {/foreach}
-                        </div>
+                            </div>
+                        {else}
+                            {* Grid Layout *}
+                            <div class="products row">
+                                {foreach from=$recsync_products item=product name=recsync_products}
+                                    {* Use standard PrestaShop product classes for responsive grid *}
+                                    <div class="js-product product col-xs-12 col-sm-6 col-xl-{if isset($recsync_widget_columns)}{12/$recsync_widget_columns}{else}4{/if}">
+                                        <article class="product-miniature js-product-miniature" data-id-product="{$product.id_product}" data-id-product-attribute="{$product.id_product_attribute}">
+                                            <div class="thumbnail-container">
+                                                <div class="thumbnail-top">
+                                                    {* Product thumbnail using standard PrestaShop structure *}
+                                                    {if $product.cover}
+                                                        <a href="{$product.url}" class="thumbnail product-thumbnail">
+                                                            <img
+                                                                src="{$product.cover.bySize.home_default.url}"
+                                                                alt="{if !empty($product.cover.legend)}{$product.cover.legend}{else}{$product.name|truncate:30:'...'}{/if}"
+                                                                loading="lazy"
+                                                                data-full-size-image-url="{$product.cover.large.url}"
+                                                                width="{$product.cover.bySize.home_default.width}"
+                                                                height="{$product.cover.bySize.home_default.height}"
+                                                            />
+                                                        </a>
+                                                    {else}
+                                                        <a href="{$product.url}" class="thumbnail product-thumbnail">
+                                                            <img
+                                                                src="{$urls.no_picture_image.bySize.home_default.url}"
+                                                                loading="lazy"
+                                                                width="{$urls.no_picture_image.bySize.home_default.width}"
+                                                                height="{$urls.no_picture_image.bySize.home_default.height}"
+                                                            />
+                                                        </a>
+                                                    {/if}
+
+                                                    <div class="highlighted-informations{if !$product.main_variants} no-variants{/if}">
+                                                        {* Quick view button *}
+                                                        <a class="quick-view js-quick-view" href="#" data-link-action="quickview">
+                                                            <i class="material-icons search">&#xE8B6;</i> {l s='Quick view' d='Shop.Theme.Actions'}
+                                                        </a>
+
+                                                        {* Product variants *}
+                                                        {if $product.main_variants}
+                                                            {include file='catalog/_partials/variant-links.tpl' variants=$product.main_variants}
+                                                        {/if}
+                                                    </div>
+                                                </div>
+
+                                                <div class="product-description">
+                                                    {* Product name *}
+                                                    <h3 class="h3 product-title">
+                                                        <a href="{$product.url}" content="{$product.url}">{$product.name|truncate:30:'...'}</a>
+                                                    </h3>
+
+                                                    {* Product price and shipping *}
+                                                    {if $product.show_price}
+                                                        <div class="product-price-and-shipping">
+                                                            {if $product.has_discount}
+                                                                {hook h='displayProductPriceBlock' product=$product type="old_price"}
+                                                                <span class="regular-price" aria-label="{l s='Regular price' d='Shop.Theme.Catalog'}">{$product.regular_price}</span>
+                                                                {if $product.discount_type === 'percentage'}
+                                                                    <span class="discount-percentage discount-product">{$product.discount_percentage}</span>
+                                                                {elseif $product.discount_type === 'amount'}
+                                                                    <span class="discount-amount discount-product">{$product.discount_amount_to_display}</span>
+                                                                {/if}
+                                                            {/if}
+
+                                                            {hook h='displayProductPriceBlock' product=$product type="before_price"}
+
+                                                            <span class="price" aria-label="{l s='Price' d='Shop.Theme.Catalog'}">
+                                                                {capture name='custom_price'}{hook h='displayProductPriceBlock' product=$product type='custom_price' hook_origin='products_list'}{/capture}
+                                                                {if '' !== $smarty.capture.custom_price}
+                                                                    {$smarty.capture.custom_price nofilter}
+                                                                {else}
+                                                                    {$product.price}
+                                                                {/if}
+                                                            </span>
+
+                                                            {hook h='displayProductPriceBlock' product=$product type='unit_price'}
+                                                            {hook h='displayProductPriceBlock' product=$product type='weight'}
+                                                        </div>
+                                                    {/if}
+
+                                                    {* Product reviews *}
+                                                    {hook h='displayProductListReviews' product=$product}
+                                                </div>
+
+                                                {* Product flags using standard PrestaShop structure *}
+                                                <ul class="product-flags js-product-flags">
+                                                    {foreach from=$product.flags item=flag}
+                                                        <li class="product-flag {$flag.type}">{$flag.label}</li>
+                                                    {/foreach}
+                                                </ul>
+                                            </div>
+                                        </article>
+                                    </div>
+                                {/foreach}
+                            </div>
+                        {/if}
                     </div>
                 </div>
             </div>
         </div>
     </section>
-    
-    {if isset($recsync_debug_enabled) && $recsync_debug_enabled}
-        <div class="recsync-debug" style="background: #f0f0f0; padding: 10px; margin: 10px 0; border: 1px solid #ccc;">
-            <h4>RecSync Debug Info:</h4>
-            <p><strong>Products found:</strong> {$recsync_products|count}</p>
-            <p><strong>Widget title:</strong> {$recsync_widget_title|escape:'html':'UTF-8'}</p>
-            <p><strong>Widget limit:</strong> {$recsync_widget_limit}</p>
-            <p><strong>Module URL:</strong> {$recsync_module_url}</p>
-        </div>
-    {/if}
-{else}
-    {if isset($recsync_debug_enabled) && $recsync_debug_enabled}
-        <div class="recsync-debug" style="background: #f0f0f0; padding: 10px; margin: 10px 0; border: 1px solid #ccc;">
-            <h4>RecSync Debug Info:</h4>
-            <p><strong>No products found</strong></p>
-            <p><strong>Products variable:</strong> {if isset($recsync_products)}Set ({$recsync_products|count} items){else}Not set{/if}</p>
-            <p><strong>Module URL:</strong> {$recsync_module_url}</p>
-        </div>
-    {/if}
 {/if}

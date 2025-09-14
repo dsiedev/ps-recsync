@@ -21,7 +21,7 @@
                             <div class="recsync-carousel{if isset($recsync_carousel_arrows) && $recsync_carousel_arrows} show-arrows{/if}{if isset($recsync_carousel_indicators) && $recsync_carousel_indicators} show-indicators{/if}" data-carousel="true">
                                 <div class="recsync-carousel-container">
                                     {foreach from=$recsync_products item=product name=recsync_products}
-                                        <div class="recsync-product js-product product" data-id-product="{$product.id_product}">
+                                        <div class="recsync-product js-product product" data-id-product="{$product.id_product}" data-category="{$product.category_name|escape:'html':'UTF-8'}" data-category-id="{$product.category_id}" data-recsync-tracking="recommendation" data-recsync-widget="home_main">
                                             <article class="product-miniature js-product-miniature" data-id-product="{$product.id_product}" data-id-product-attribute="{$product.id_product_attribute}">
                                                 <div class="thumbnail-container">
                                                     <div class="thumbnail-top">
@@ -117,7 +117,7 @@
                             <div class="products row">
                                 {foreach from=$recsync_products item=product name=recsync_products}
                                     {* Use standard PrestaShop product classes for responsive grid *}
-                                    <div class="js-product product col-xs-12 col-sm-6 col-xl-{if isset($recsync_widget_columns)}{12/$recsync_widget_columns}{else}4{/if}">
+                                    <div class="js-product product col-xs-12 col-sm-6 col-xl-{if isset($recsync_widget_columns)}{12/$recsync_widget_columns}{else}4{/if}" data-id-product="{$product.id_product}" data-category="{$product.category_name|escape:'html':'UTF-8'}" data-category-id="{$product.category_id}" data-recsync-tracking="recommendation" data-recsync-widget="home_main">
                                         <article class="product-miniature js-product-miniature" data-id-product="{$product.id_product}" data-id-product-attribute="{$product.id_product_attribute}">
                                             <div class="thumbnail-container">
                                                 <div class="thumbnail-top">

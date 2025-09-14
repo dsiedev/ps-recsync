@@ -495,6 +495,11 @@ class Recsync extends Module
         if (Configuration::get('RECSYNC_ENABLED')) {
             $this->context->controller->addCSS($this->_path . 'views/css/recsync.css');
             $this->context->controller->addJS($this->_path . 'views/js/recsync.js');
+            
+            // Agregar script de seguimiento de recomendaciones solo si la telemetría está habilitada
+            if (Configuration::get('RECSYNC_TELEMETRY_ENABLED')) {
+                $this->context->controller->addJS($this->_path . 'views/js/recsync-recommendations-tracking.js');
+            }
         }
     }
 
@@ -985,6 +990,28 @@ class Recsync extends Module
             // Get add to cart URL
             $addToCartUrl = $this->context->link->getAddToCartURL($productId, 0);
 
+            // Get category information
+            $categoryName = 'Productos'; // Default fallback
+            $categoryId = (int)$product->id_category_default;
+            
+            if ($categoryId > 0) {
+                try {
+                    $category = new Category($categoryId, $this->context->language->id);
+                    if (Validate::isLoadedObject($category)) {
+                        $categoryName = $category->name;
+                    }
+                } catch (Exception $e) {
+                    // Use default category name if category loading fails
+                    PrestaShopLogger::addLog(
+                        'RecSync Warning: Could not load category ' . $categoryId . ' for product ' . $productId,
+                        1,
+                        null,
+                        'Recsync',
+                        $this->id
+                    );
+                }
+            }
+
             return [
                 'id_product' => (int)$productId,
                 'id_product_attribute' => 0,
@@ -1001,7 +1028,9 @@ class Recsync extends Module
                 'flags' => $flags,
                 'reference' => $product->reference ?: '',
                 'external_id' => $product->reference ?: 'PS_' . $productId,
-                'id_category_default' => (int)$product->id_category_default,
+                'id_category_default' => $categoryId,
+                'category_name' => $categoryName,
+                'category_id' => $categoryId,
                 'main_variants' => null, // Can be populated if needed
             ];
 

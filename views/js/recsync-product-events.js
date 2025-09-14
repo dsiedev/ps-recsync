@@ -1022,11 +1022,13 @@
         
         extractProductDataFromPage() {
             // Extraer datos del producto desde la página actual
+            const categoryData = this.getProductCategoryWithId();
             const productData = {
                 item_id: this.getProductId(),
                 item_name: this.getProductName(),
                 price: this.getProductPrice(),
-                item_category: this.getProductCategory(),
+                item_category: categoryData.category,
+                item_category_id: categoryData.categoryId,
                 quantity: this.getProductQuantity(),
                 currency: this.getCurrency(),
                 page_location: window.location.href,
@@ -1085,11 +1087,13 @@
             }
             
             // Extraer datos del producto desde el item del carrito
+            const categoryData = this.getProductCategoryFromCartItemWithId(cartItem);
             const productData = {
                 item_id: this.getProductIdFromCartItem(cartItem),
                 item_name: this.getProductNameFromCartItem(cartItem),
                 price: this.getProductPriceFromCartItem(cartItem),
-                item_category: this.getProductCategoryFromCartItem(cartItem),
+                item_category: categoryData.category,
+                item_category_id: categoryData.categoryId,
                 quantity: this.getProductQuantityFromCartItem(cartItem),
                 currency: this.getCurrency(),
                 page_location: window.location.href,
@@ -1208,6 +1212,108 @@
             }
             
             return "Productos";
+        }
+        
+        getProductCategoryWithId() {
+            // PRIMERO: Intentar extraer desde data attributes del producto actual (si está disponible)
+            const currentProductElement = document.querySelector('[data-id-product]');
+            if (currentProductElement) {
+                const category = currentProductElement.getAttribute('data-category');
+                const categoryId = currentProductElement.getAttribute('data-category-id');
+                
+                if (category && category.trim()) {
+                    if (RECSYNC_CONFIG.debugEnabled) {
+                        console.log("RecSync: Found category from current product data attributes:", category, "categoryId:", categoryId);
+                    }
+                    return { category: category.trim(), categoryId: categoryId || null };
+                }
+            }
+            
+            // FALLBACK: Buscar categoría e ID del producto con múltiples estrategias
+            const categorySelectors = [
+                { selector: "[data-category-id]", attr: "data-category-id" },
+                { selector: "[data-category]", attr: "data-category" },
+                { selector: "[data-id-category]", attr: "data-id-category" },
+                { selector: ".category-name", attr: "textContent" },
+                { selector: ".product-category", attr: "textContent" },
+                { selector: ".breadcrumb .category", attr: "textContent" },
+                { selector: ".breadcrumb a", attr: "textContent" },
+                { selector: "nav .breadcrumb a", attr: "textContent" },
+                { selector: ".breadcrumb-item", attr: "textContent" },
+                { selector: "meta[name=\"product_category\"]", attr: "content" },
+                { selector: "meta[property=\"product:category\"]", attr: "content" },
+                { selector: ".product-category-name", attr: "textContent" },
+                { selector: ".category-title", attr: "textContent" }
+            ];
+            
+            for (const { selector, attr } of categorySelectors) {
+                const element = document.querySelector(selector);
+                if (element) {
+                    let category = '';
+                    let categoryId = '';
+                    
+                    if (attr === 'textContent' || attr === 'content') {
+                        category = element.textContent || element.content || '';
+                    } else {
+                        category = element.getAttribute(attr) || '';
+                    }
+                    
+                    // Intentar extraer ID de categoría
+                    categoryId = element.getAttribute('data-category-id') || 
+                                element.getAttribute('data-id-category') ||
+                                element.getAttribute('href')?.match(/category\/(\d+)/)?.[1] ||
+                                element.getAttribute('href')?.match(/\/categoria\/(\d+)/)?.[1] ||
+                                null;
+                    
+                    if (category && category.trim()) {
+                        category = category.trim();
+                        if (RECSYNC_CONFIG.debugEnabled) {
+                            console.log("RecSync: Found category with selector:", selector, "category:", category, "categoryId:", categoryId);
+                        }
+                        return { category, categoryId };
+                    }
+                }
+            }
+            
+            // Intentar extraer desde la URL actual
+            const currentUrl = window.location.href;
+            const urlCategoryMatch = currentUrl.match(/\/category\/([^\/]+)/) || currentUrl.match(/\/categoria\/([^\/]+)/);
+            if (urlCategoryMatch) {
+                const categoryFromUrl = urlCategoryMatch[1].replace(/[-_]/g, ' ');
+                const categoryIdMatch = currentUrl.match(/\/category\/(\d+)/) || currentUrl.match(/\/categoria\/(\d+)/);
+                const categoryId = categoryIdMatch ? categoryIdMatch[1] : null;
+                
+                if (RECSYNC_CONFIG.debugEnabled) {
+                    console.log("RecSync: Found category from URL:", categoryFromUrl, "categoryId:", categoryId);
+                }
+                return { category: categoryFromUrl, categoryId };
+            }
+            
+            // Intentar extraer desde breadcrumbs más amplios
+            const breadcrumbElements = document.querySelectorAll('.breadcrumb a, .breadcrumb span, nav a');
+            for (const element of breadcrumbElements) {
+                const text = element.textContent?.trim();
+                if (text && text.length > 2 && text.length < 30 && 
+                    !text.toLowerCase().includes('home') && 
+                    !text.toLowerCase().includes('inicio') &&
+                    !text.toLowerCase().includes('product') &&
+                    !text.toLowerCase().includes('producto')) {
+                    
+                    const categoryId = element.getAttribute('href')?.match(/category\/(\d+)/)?.[1] ||
+                                     element.getAttribute('href')?.match(/\/categoria\/(\d+)/)?.[1] ||
+                                     null;
+                    
+                    if (RECSYNC_CONFIG.debugEnabled) {
+                        console.log("RecSync: Found category from breadcrumb:", text, "categoryId:", categoryId);
+                    }
+                    return { category: text, categoryId };
+                }
+            }
+            
+            if (RECSYNC_CONFIG.debugEnabled) {
+                console.log("RecSync: No category found, using fallback: 'Productos', categoryId: null");
+            }
+            return { category: "Productos", categoryId: null };
         }
         
         getProductQuantity() {
@@ -1407,6 +1513,51 @@
             }
             
             return "Productos";
+        }
+        
+        getProductCategoryFromCartItemWithId(cartItem) {
+            // Buscar categoría e ID del producto en el item del carrito
+            const categorySelectors = [
+                { selector: "[data-category-id]", attr: "data-category-id" },
+                { selector: "[data-category]", attr: "data-category" },
+                { selector: ".product-category", attr: "textContent" },
+                { selector: ".item-category", attr: "textContent" },
+                { selector: ".cart-item-category", attr: "textContent" },
+                { selector: ".category", attr: "textContent" }
+            ];
+            
+            for (const { selector, attr } of categorySelectors) {
+                const element = cartItem.querySelector(selector);
+                if (element) {
+                    let category = '';
+                    let categoryId = '';
+                    
+                    if (attr === 'textContent') {
+                        category = element.textContent || '';
+                    } else {
+                        category = element.getAttribute(attr) || element.dataset[attr.replace('data-', '')] || '';
+                    }
+                    
+                    // Intentar extraer ID de categoría
+                    categoryId = element.getAttribute('data-category-id') || 
+                                element.getAttribute('data-id-category') ||
+                                element.getAttribute('href')?.match(/category\/(\d+)/)?.[1] ||
+                                null;
+                    
+                    if (category && category.trim()) {
+                        category = category.trim();
+                        if (RECSYNC_CONFIG.debugEnabled) {
+                            console.log("RecSync: Found cart category with selector:", selector, "category:", category, "categoryId:", categoryId);
+                        }
+                        return { category, categoryId };
+                    }
+                }
+            }
+            
+            if (RECSYNC_CONFIG.debugEnabled) {
+                console.log("RecSync: No cart category found, using fallback: 'Productos', categoryId: null");
+            }
+            return { category: "Productos", categoryId: null };
         }
         
         getProductQuantityFromCartItem(cartItem) {

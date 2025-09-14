@@ -175,5 +175,7 @@ $_MODULE['<{recsync}prestashop>configure_8a2f2b6f6b5b5b5b5b5b5b5b5b5b5b5b5'] = '
 $_MODULE['<{recsync}prestashop>configure_9a2f2b6f6b5b5b5b5b5b5b5b5b5b5b5b6'] = 'Mostrar flechas de navegación en modo carrusel';
 $_MODULE['<{recsync}prestashop>configure_7a2f2b6f6b5b5b5b5b5b5b5b5b5b5b5b7'] = 'Mostrar Indicadores del Carrusel';
 $_MODULE['<{recsync}prestashop>configure_8a2f2b6f6b5b5b5b5b5b5b5b5b5b5b5b8'] = 'Mostrar indicadores de navegación (puntos) en modo carrusel';
+$_MODULE['<{recsync}prestashop>recsync_recommendation_tracking'] = 'Seguimiento de Recomendaciones';
+$_MODULE['<{recsync}prestashop>recsync_recommendation_tracking_desc'] = 'Rastrea clicks, vistas y añadidos al carrito en productos recomendados para mejorar las recomendaciones';
 
 ?>

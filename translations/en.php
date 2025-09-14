@@ -167,5 +167,7 @@ $_MODULE['<{recsync}prestashop>configure_8a2f2b6f6b5b5b5b5b5b5b5b5b5b5b5b5'] = '
 $_MODULE['<{recsync}prestashop>configure_9a2f2b6f6b5b5b5b5b5b5b5b5b5b5b5b6'] = 'Show navigation arrows in carousel mode';
 $_MODULE['<{recsync}prestashop>configure_7a2f2b6f6b5b5b5b5b5b5b5b5b5b5b5b7'] = 'Show Carousel Indicators';
 $_MODULE['<{recsync}prestashop>configure_8a2f2b6f6b5b5b5b5b5b5b5b5b5b5b5b8'] = 'Show navigation indicators (dots) in carousel mode';
+$_MODULE['<{recsync}prestashop>recsync_recommendation_tracking'] = 'Recommendation Tracking';
+$_MODULE['<{recsync}prestashop>recsync_recommendation_tracking_desc'] = 'Track clicks, views and add to cart actions on recommended products to improve recommendations';
 
 ?>

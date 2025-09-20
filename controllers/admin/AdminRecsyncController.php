@@ -207,7 +207,7 @@ class AdminRecsyncController extends ModuleAdminController
                     'widget_id' => 'admin_test',
                     'shop_id' => 1,
                     'language' => 'es-ES',
-                    'currency' => 'CLP',
+                    'currency' => 'USD',
                     'device' => 'desktop',
                 ],
                 'rules' => [

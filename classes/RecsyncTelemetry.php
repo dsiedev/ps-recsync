@@ -38,19 +38,46 @@ class RecsyncTelemetry
     /**
      * Track product view event
      */
-    public function trackProductView($productId, $userId = null)
+    public function trackProductView($productId, $userId = null, $recommendationContext = false, $productData = null)
     {
         if (!Configuration::get('RECSYNC_TELEMETRY_ENABLED')) {
             return;
         }
 
-        $data = [
-            'event_type' => 'product_view',
-            'event_data' => json_encode([
+        // If productData is provided (from JavaScript), use it directly
+        if ($productData && is_array($productData)) {
+            $eventData = $productData;
+        } else {
+            // Build basic event data structure
+            $eventData = [
                 'product_id' => $productId,
                 'user_id' => $userId,
                 'timestamp' => time()
-            ]),
+            ];
+            
+            // Try to get product category from PrestaShop
+            if (class_exists('Product')) {
+                try {
+                    $product = new Product($productId);
+                    if ($product->id_category_default) {
+                        $category = new Category($product->id_category_default);
+                        $eventData['item_category'] = $category->name[Context::getContext()->language->id] ?? 'Unknown';
+                        $eventData['item_category_id'] = $product->id_category_default;
+                    }
+                } catch (Exception $e) {
+                    // If we can't get category, continue without it
+                }
+            }
+        }
+
+        // Add recommendation context if provided
+        if ($recommendationContext) {
+            $eventData['recommendation_context'] = true;
+        }
+
+        $data = [
+            'event_type' => 'view_item',
+            'event_data' => json_encode($eventData),
             'created_at' => date('Y-m-d H:i:s')
         ];
 
@@ -60,20 +87,42 @@ class RecsyncTelemetry
     /**
      * Track add to cart event
      */
-    public function trackAddToCart($productId, $quantity, $userId = null)
+    public function trackAddToCart($productId, $quantity, $userId = null, $productData = null)
     {
         if (!Configuration::get('RECSYNC_TELEMETRY_ENABLED')) {
             return;
         }
 
-        $data = [
-            'event_type' => 'add_to_cart',
-            'event_data' => json_encode([
+        // If productData is provided (from JavaScript), use it directly
+        if ($productData && is_array($productData)) {
+            $eventData = $productData;
+        } else {
+            // Build basic event data structure
+            $eventData = [
                 'product_id' => $productId,
                 'quantity' => $quantity,
                 'user_id' => $userId,
                 'timestamp' => time()
-            ]),
+            ];
+            
+            // Try to get product category from PrestaShop
+            if (class_exists('Product')) {
+                try {
+                    $product = new Product($productId);
+                    if ($product->id_category_default) {
+                        $category = new Category($product->id_category_default);
+                        $eventData['item_category'] = $category->name[Context::getContext()->language->id] ?? 'Unknown';
+                        $eventData['item_category_id'] = $product->id_category_default;
+                    }
+                } catch (Exception $e) {
+                    // If we can't get category, continue without it
+                }
+            }
+        }
+
+        $data = [
+            'event_type' => 'add_to_cart',
+            'event_data' => json_encode($eventData),
             'created_at' => date('Y-m-d H:i:s')
         ];
 
@@ -83,44 +132,108 @@ class RecsyncTelemetry
     /**
      * Track purchase event
      */
-    public function trackPurchase($orderId, $eventType, $productId, $quantity, $price)
+    public function trackPurchase($orderId, $eventType, $productId, $quantity, $price, $recommendationContext = false, $userId = null, $orderData = null)
     {
         if (!Configuration::get('RECSYNC_TELEMETRY_ENABLED')) {
             return;
         }
 
-        $data = [
-            'event_type' => $eventType,
-            'event_data' => json_encode([
-                'order_id' => $orderId,
-                'product_id' => $productId,
-                'quantity' => $quantity,
-                'price' => $price,
-                'timestamp' => time()
-            ]),
-            'created_at' => date('Y-m-d H:i:s')
-        ];
+        // If orderData is provided, use it directly (from JavaScript)
+        if ($orderData && is_array($orderData)) {
+            $eventData = $orderData;
+        } else {
+            // Get real currency from configuration
+            $currencyCode = 'USD'; // Default fallback
+            if (class_exists('Currency')) {
+                $defaultCurrency = Currency::getDefaultCurrency();
+                if ($defaultCurrency) {
+                    $currencyCode = $defaultCurrency->iso_code;
+                }
+            }
+            
+            // Build event data structure similar to the required format
+            $eventData = [
+                'transaction_id' => $orderId,
+                'value' => $price * $quantity,
+                'currency' => $currencyCode,
+                'tax' => 0,
+                'shipping' => 0,
+                'coupon' => null,
+                'affiliation' => Configuration::get('PS_SHOP_NAME') ?: 'PrestaShop Store',
+                'payment_type' => 'unknown',
+                'items' => [
+                    [
+                        'item_name' => 'Product',
+                        'item_id' => $productId,
+                        'price' => $price,
+                        'quantity' => $quantity,
+                        'item_category' => 'Unknown'
+                    ]
+                ]
+            ];
+        }
 
-        return $this->insertEvent($data);
+        // Add recommendation context if provided
+        if ($recommendationContext) {
+            $eventData['recommendation_context'] = true;
+        }
+
+        // Add user_id if provided
+        if ($userId) {
+            $eventData['user_id'] = $userId;
+        }
+
+            $data = [
+                'event_type' => $eventType,
+                'event_data' => json_encode($eventData),
+                'created_at' => date('Y-m-d H:i:s')
+            ];
+
+            return $this->insertEvent($data);
     }
 
     /**
      * Track recommendation click event
      */
-    public function trackRecommendationClick($recommendationId, $productId, $userId = null)
+    public function trackRecommendationClick($recommendationId, $productId, $userId = null, $productData = null)
     {
         if (!Configuration::get('RECSYNC_TELEMETRY_ENABLED')) {
             return;
         }
 
-        $data = [
-            'event_type' => 'recommendation_click',
-            'event_data' => json_encode([
+        // If productData is provided (from JavaScript), use it directly
+        if ($productData && is_array($productData)) {
+            $eventData = $productData;
+        } else {
+            // Build basic event data structure
+            $eventData = [
                 'recommendation_id' => $recommendationId,
                 'product_id' => $productId,
                 'user_id' => $userId,
                 'timestamp' => time()
-            ]),
+            ];
+            
+            // Try to get product category from PrestaShop
+            if (class_exists('Product')) {
+                try {
+                    $product = new Product($productId);
+                    if ($product->id_category_default) {
+                        $category = new Category($product->id_category_default);
+                        $eventData['item_category'] = $category->name[Context::getContext()->language->id] ?? 'Unknown';
+                        $eventData['item_category_id'] = $product->id_category_default;
+                    }
+                } catch (Exception $e) {
+                    // If we can't get category, continue without it
+                }
+            }
+        }
+
+        // Add recommendation context
+        $eventData['recommendation_context'] = true;
+
+        $data = [
+            'event_type' => 'recommendation_click',
+            'event_data' => json_encode($eventData),
             'created_at' => date('Y-m-d H:i:s')
         ];
 

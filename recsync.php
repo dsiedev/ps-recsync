@@ -593,15 +593,64 @@ class Recsync extends Module
         // Track purchase event
         $telemetry = new RecsyncTelemetry();
         
-        foreach ($order->getProducts() as $product) {
-            $telemetry->trackPurchase(
-                'order_' . $order->id,
-                'checkout_complete',
-                $product['product_reference'] ?: 'PS_' . $product['product_id'],
-                $product['product_quantity'],
-                $product['unit_price_tax_incl']
-            );
+        // Get real currency from order
+        $currency = new Currency($order->id_currency);
+        $currencyCode = $currency->iso_code;
+        
+        // Get real payment method
+        $paymentMethod = 'unknown';
+        if ($order->payment) {
+            $paymentMethod = $order->payment;
         }
+        
+        // Build order data in the required format
+        $orderData = [
+            'transaction_id' => $order->id,
+            'value' => $order->total_paid,
+            'currency' => $currencyCode,
+            'tax' => $order->total_paid_tax_incl - $order->total_paid_tax_excl,
+            'shipping' => $order->total_shipping,
+            'coupon' => null,
+            'affiliation' => Configuration::get('PS_SHOP_NAME') ?: 'PrestaShop Store',
+            'payment_type' => $paymentMethod,
+            'items' => []
+        ];
+        
+        // Add products to items array
+        foreach ($order->getProducts() as $product) {
+            // Get real product category
+            $categoryName = 'Unknown';
+            if (isset($product['category_name']) && !empty($product['category_name'])) {
+                $categoryName = $product['category_name'];
+            } else {
+                // Try to get category from product object
+                $productObj = new Product($product['product_id']);
+                if ($productObj->id_category_default) {
+                    $category = new Category($productObj->id_category_default);
+                    $categoryName = $category->name[Context::getContext()->language->id] ?? 'Unknown';
+                }
+            }
+            
+            $orderData['items'][] = [
+                'item_name' => $product['product_name'],
+                'item_id' => $product['product_reference'] ?: 'PS_' . $product['product_id'],
+                'price' => $product['unit_price_tax_incl'],
+                'quantity' => $product['product_quantity'],
+                'item_category' => $categoryName
+            ];
+        }
+        
+            // Track purchase event with complete order data
+            $telemetry->trackPurchase(
+                $order->id,
+                'purchase',
+                null, // productId not needed when using orderData
+                null, // quantity not needed when using orderData
+                null, // price not needed when using orderData
+                true, // recommendationContext
+                $customer->id, // userId
+                $orderData // orderData
+            );
     }
 
     /**
@@ -613,7 +662,7 @@ class Recsync extends Module
             // Safe context building with fallbacks
             $language = 'es';
             $country = 'ES';
-            $currency = 'CLP';
+            $currency = 'USD';
             $shopId = 1;
             
             if ($this->context->language && $this->context->language->iso_code) {
@@ -681,7 +730,7 @@ class Recsync extends Module
                     'widget_id' => 'home_main',
                     'shop_id' => 1,
                     'language' => 'es-ES',
-                    'currency' => 'CLP',
+                    'currency' => 'USD',
                     'device' => 'desktop',
                 ],
                 'rules' => [
@@ -991,7 +1040,7 @@ class Recsync extends Module
             $addToCartUrl = $this->context->link->getAddToCartURL($productId, 0);
 
             // Get category information
-            $categoryName = 'Productos'; // Default fallback
+            $categoryName = 'Unknown'; // Default fallback
             $categoryId = (int)$product->id_category_default;
             
             if ($categoryId > 0) {

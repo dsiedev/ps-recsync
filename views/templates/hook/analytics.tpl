@@ -33,17 +33,28 @@ function initRecSyncAnalytics() {
         console.log('RecSync: Backend is logged in:', window.RECSYNC_ANALYTICS_CONFIG.isLoggedIn);
     }
 
-    // Cargar analytics.js dinámicamente
+    // Crear RECSYNC_CONFIG para compatibilidad con el script
+    window.RECSYNC_CONFIG = {
+        telemetryEnabled: window.RECSYNC_ANALYTICS_CONFIG.telemetryEnabled,
+        clientId: window.RECSYNC_ANALYTICS_CONFIG.clientId,
+        apiUrl: window.RECSYNC_ANALYTICS_CONFIG.apiUrl + '/v1/events/',
+        apiKey: window.RECSYNC_ANALYTICS_CONFIG.apiKey,
+        debugEnabled: window.RECSYNC_ANALYTICS_CONFIG.debugEnabled
+    };
+    
+
+    // Cargar analytics.js público pero configurado para no enviar eventos purchase
     const analyticsScript = document.createElement('script');
     analyticsScript.src = 'http://127.0.0.1:3000/analytics.js';
     analyticsScript.setAttribute('data-client-id', window.RECSYNC_ANALYTICS_CONFIG.clientId);
     analyticsScript.setAttribute('data-client-secret', window.RECSYNC_ANALYTICS_CONFIG.apiKey);
     analyticsScript.setAttribute('data-debug', window.RECSYNC_ANALYTICS_CONFIG.debugEnabled.toString());
+    analyticsScript.setAttribute('data-disable-purchase-events', 'true'); // Deshabilitar eventos purchase
     analyticsScript.async = true;
     
     analyticsScript.onload = function() {
         if (window.RECSYNC_ANALYTICS_CONFIG.debugEnabled) {
-            console.log('RecSync: Analytics.js loaded successfully');
+            console.log('RecSync: Analytics.js loaded successfully (purchase events disabled)');
         }
         
         // Cargar eventos específicos de producto
@@ -58,6 +69,19 @@ function initRecSyncAnalytics() {
         };
         
         document.head.appendChild(productEventsScript);
+        
+        // Cargar eventos de recomendaciones
+        const recommendationsScript = document.createElement('script');
+        recommendationsScript.src = window.RECSYNC_ANALYTICS_CONFIG.moduleUrl + 'views/js/recsync-recommendations-tracking.js';
+        recommendationsScript.async = true;
+        
+        recommendationsScript.onload = function() {
+            if (window.RECSYNC_ANALYTICS_CONFIG.debugEnabled) {
+                console.log('RecSync: Recommendations tracking script loaded successfully');
+            }
+        };
+        
+        document.head.appendChild(recommendationsScript);
     };
     
     document.head.appendChild(analyticsScript);

@@ -37,66 +37,12 @@
         }
         
         setupPrestaShopProductEvents() {
-        this.trackPageView();
+            // Page view tracking is handled by the public analytics.js script
             this.setupPurchaseEventTracking();
+            this.setupAddToCartTracking();
         }
         
-        trackPageView() {
-        const pageData = this.extractPageData();
-        this.trackEvent('page_view', pageData);
-    }
-
-    extractPageData() {
-        const url = new URL(window.location.href);
-        const pathSegments = url.pathname.split('/').filter(segment => segment);
-        
-        let itemId = '1';
-        let itemName = document.title || 'Page';
-        let itemCategory = 'Unknown';
-        let itemCategoryId = null;
-        let price = 0;
-
-        // Try to extract product information from various sources
-            const productSelectors = [
-                '[data-id-product]',
-            '.product-reference',
-            '.product-name',
-            'h1',
-            '.breadcrumb'
-            ];
-            
-            for (const selector of productSelectors) {
-            const element = document.querySelector(selector);
-            if (element) {
-                if (selector === '[data-id-product]') {
-                    itemId = element.getAttribute('data-id-product') || itemId;
-                }
-                if (selector === '.product-name' || selector === 'h1') {
-                    itemName = element.textContent?.trim() || itemName;
-                }
-                if (selector === '.breadcrumb') {
-                    const categoryElement = element.querySelector('a:not(:first-child)');
-                    if (categoryElement) {
-                        itemCategory = categoryElement.textContent?.trim() || itemCategory;
-                        itemCategoryId = categoryElement.getAttribute('data-id-category') || null;
-                    }
-                }
-                break;
-            }
-        }
-
-                return {
-            item_id: itemId,
-            item_name: itemName,
-            price: price,
-            quantity: 1,
-            item_category: itemCategory,
-            item_category_id: itemCategoryId,
-            page_location: window.location.href,
-            page_title: document.title,
-            currency: 'USD'
-        };
-    }
+        // Page view tracking functions removed - handled by public analytics.js script
 
     setupPurchaseEventTracking() {
         // Check if we're on an order confirmation page
@@ -107,6 +53,224 @@
                 this.trackPurchaseEvent();
             }, 1000);
         }
+    }
+
+    setupAddToCartTracking() {
+        // Function to setup tracking for buttons
+        const setupButtons = () => {
+            const addToCartButtons = document.querySelectorAll(`
+                [data-button-action="add-to-cart"], 
+                [data-button-action="add_to_cart"],
+                .add-to-cart, 
+                .btn-add-to-cart,
+                .add_to_cart,
+                .btn-addtocart,
+                button[type="submit"][form*="add_to_cart"],
+                input[type="submit"][form*="add_to_cart"],
+                button[onclick*="add"],
+                button[onclick*="cart"],
+                input[value*="Add"],
+                input[value*="cart"],
+                .btn-primary[form*="add_to_cart"]
+            `);
+
+            console.log('RecSync: Found', addToCartButtons.length, 'add to cart buttons');
+
+            addToCartButtons.forEach((button, index) => {
+                // Check if already has our listener
+                if (!button.hasAttribute('data-recsync-tracked')) {
+                    button.setAttribute('data-recsync-tracked', 'true');
+                    console.log('RecSync: Setting up add to cart tracking for button', index, button);
+                    button.addEventListener('click', (event) => {
+                        console.log('RecSync: Add to cart button clicked', button);
+                        this.handleAddToCartClick(button, event);
+                    });
+                }
+            });
+        };
+
+        // Setup initial buttons
+        setTimeout(setupButtons, 1000);
+
+        // Watch for dynamically added buttons (like in modals)
+        const observer = new MutationObserver((mutations) => {
+            let shouldCheck = false;
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                    // Check if any added node contains add to cart buttons
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeType === 1) { // Element node
+                            if (node.querySelector && (
+                                node.querySelector('[data-button-action="add-to-cart"]') ||
+                                node.querySelector('[data-button-action="add_to_cart"]') ||
+                                node.querySelector('.add-to-cart') ||
+                                node.querySelector('.btn-add-to-cart') ||
+                                node.classList.contains('add-to-cart') ||
+                                node.classList.contains('btn-add-to-cart')
+                            )) {
+                                shouldCheck = true;
+                            }
+                        }
+                    });
+                }
+            });
+            
+            if (shouldCheck) {
+                console.log('RecSync: New buttons detected, setting up tracking');
+                setTimeout(setupButtons, 100);
+            }
+        });
+
+        // Start observing
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
+
+    handleAddToCartClick(button, event) {
+        console.log('RecSync: Handling add to cart click');
+        
+        // Extract product data from the button or surrounding elements
+        const productData = this.extractProductDataFromButton(button);
+        
+        if (productData && productData.item_id) {
+            // If we only have basic data (like "Product" as name), fetch from backend
+            if (productData.item_name === 'Product' || !productData.item_name) {
+                console.log('RecSync: Product data incomplete, fetching from backend');
+                this.fetchProductDataFromBackend(productData.item_id, (backendData) => {
+                    if (backendData) {
+                        const addToCartData = {
+                            ...backendData,
+                            page_location: window.location.href,
+                            page_title: document.title,
+                            currency: 'USD'
+                        };
+                        
+                        console.log('RecSync: Sending add_to_cart event with backend data:', addToCartData);
+                        this.trackEvent('add_to_cart', addToCartData);
+                    } else {
+                        console.log('RecSync: Backend fetch failed, using fallback data');
+                        const addToCartData = {
+                            ...productData,
+                            page_location: window.location.href,
+                            page_title: document.title,
+                            currency: 'USD'
+                        };
+                        this.trackEvent('add_to_cart', addToCartData);
+                    }
+                });
+            } else {
+                // We have good data, use it directly
+                const addToCartData = {
+                    ...productData,
+                    page_location: window.location.href,
+                    page_title: document.title,
+                    currency: 'USD'
+                };
+                
+                console.log('RecSync: Sending add_to_cart event with extracted data:', addToCartData);
+                this.trackEvent('add_to_cart', addToCartData);
+            }
+        } else {
+            console.warn('RecSync: Could not extract product data for add to cart event');
+        }
+    }
+
+    extractProductDataFromButton(button) {
+        // Try to find product data from various sources
+        let productId = null;
+        let productName = null;
+        let productPrice = null;
+        let productCategory = null;
+
+        // Method 1: Look for data attributes on the button
+        productId = button.getAttribute('data-id-product') || 
+                   button.getAttribute('data-product-id') ||
+                   button.getAttribute('data-id');
+
+        // Method 2: Look in the form that contains this button
+        const form = button.closest('form');
+        if (form) {
+            productId = productId || form.querySelector('[name="id_product"]')?.value ||
+                       form.querySelector('[data-id-product]')?.getAttribute('data-id-product');
+        }
+
+        // Method 3: Look in parent elements
+        if (!productId) {
+            const productElement = button.closest('[data-id-product]');
+            if (productElement) {
+                productId = productElement.getAttribute('data-id-product');
+            }
+        }
+
+        // Method 4: Look for product name
+        const productNameElement = document.querySelector('.product-name, h1, h2, h3, .product-title');
+        if (productNameElement) {
+            productName = productNameElement.textContent?.trim();
+        }
+
+        // Method 5: Look for price
+        const priceElement = document.querySelector('.price, .product-price, .current-price');
+        if (priceElement) {
+            const priceText = priceElement.textContent?.replace(/[^\d.,]/g, '') || '0';
+            productPrice = parseFloat(priceText.replace(',', '.')) || 0;
+        }
+
+        // Method 6: Look for category
+        const categoryElement = document.querySelector('[data-category], .category-name, .breadcrumb a:last-child');
+        if (categoryElement) {
+            productCategory = categoryElement.getAttribute('data-category') || 
+                            categoryElement.textContent?.trim() || 'Unknown';
+        }
+
+        if (productId) {
+            return {
+                item_id: productId,
+                item_name: productName || 'Product',
+                price: productPrice || 0,
+                quantity: 1,
+                item_category: productCategory || 'Unknown'
+            };
+        }
+
+        return null;
+    }
+
+    fetchProductDataFromBackend(productId, callback) {
+        const baseUrl = window.location.origin + window.location.pathname.split('/').slice(0, -1).join('/');
+        const endpointUrl = baseUrl + '/modules/recsync/controllers/front/productdata.php';
+        const params = new URLSearchParams({
+            id_product: productId
+        });
+        
+        fetch(endpointUrl + '?' + params.toString(), {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Referer': window.location.href
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success && data.product_data) {
+                callback(data.product_data);
+            } else {
+                console.warn('RecSync: Failed to fetch product data from backend:', data.error || 'Unknown error');
+                callback(null);
+            }
+        })
+        .catch(error => {
+            console.warn('RecSync: Error fetching product data from backend:', error);
+            callback(null);
+        });
     }
 
     isOrderConfirmationPage() {
@@ -582,6 +746,13 @@
         }
         
         getUserId() {
+        // Use backend configuration first (more reliable)
+        if (window.RECSYNC_ANALYTICS_CONFIG && window.RECSYNC_ANALYTICS_CONFIG.isLoggedIn && window.RECSYNC_ANALYTICS_CONFIG.customerId) {
+            localStorage.removeItem('dl_anon_user_id');
+            return String(window.RECSYNC_ANALYTICS_CONFIG.customerId);
+        }
+        
+        // Fallback to PrestaShop object
         if (window.prestashop && window.prestashop.customer && window.prestashop.customer.isLoggedIn) {
             const customerId = window.prestashop.customer.id_customer;
                 
@@ -591,6 +762,7 @@
             }
         }
         
+        // Generate anonymous ID if not logged in
         let anonId = localStorage.getItem('dl_anon_user_id');
         if (!anonId) {
             anonId = 'anon_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);

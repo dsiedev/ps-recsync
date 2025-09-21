@@ -42,6 +42,7 @@ function initRecSyncAnalytics() {
         debugEnabled: window.RECSYNC_ANALYTICS_CONFIG.debugEnabled
     };
     
+    
 
     // Cargar analytics.js público pero configurado para no enviar eventos purchase
     const analyticsScript = document.createElement('script');
@@ -49,12 +50,12 @@ function initRecSyncAnalytics() {
     analyticsScript.setAttribute('data-client-id', window.RECSYNC_ANALYTICS_CONFIG.clientId);
     analyticsScript.setAttribute('data-client-secret', window.RECSYNC_ANALYTICS_CONFIG.apiKey);
     analyticsScript.setAttribute('data-debug', window.RECSYNC_ANALYTICS_CONFIG.debugEnabled.toString());
-    analyticsScript.setAttribute('data-disable-purchase-events', 'true'); // Deshabilitar eventos purchase
+    // analyticsScript.setAttribute('data-disable-purchase-events', 'true'); // Deshabilitar eventos purchase
     analyticsScript.async = true;
     
     analyticsScript.onload = function() {
         if (window.RECSYNC_ANALYTICS_CONFIG.debugEnabled) {
-            console.log('RecSync: Analytics.js loaded successfully (purchase events disabled)');
+            console.log('RecSync: Analytics.js loaded successfully');
         }
         
         // Cargar eventos específicos de producto

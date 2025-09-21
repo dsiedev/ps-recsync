@@ -6,12 +6,12 @@
 (function() {
     "use strict";
     
-    // Configuración dinámica desde PrestaShop
-    const RECSYNC_CONFIG = {
+    // Use global RECSYNC_CONFIG if available, otherwise fallback to basic config
+    const RECSYNC_CONFIG = window.RECSYNC_CONFIG || {
         enabled: window.RECSYNC_ANALYTICS_CONFIG ? window.RECSYNC_ANALYTICS_CONFIG.enabled : true,
         telemetryEnabled: window.RECSYNC_ANALYTICS_CONFIG ? window.RECSYNC_ANALYTICS_CONFIG.telemetryEnabled : true,
         clientId: window.RECSYNC_ANALYTICS_CONFIG ? window.RECSYNC_ANALYTICS_CONFIG.clientId : "",
-        apiUrl: window.RECSYNC_ANALYTICS_CONFIG ? window.RECSYNC_ANALYTICS_CONFIG.apiUrl : "https://api.recsync.com",
+        apiUrl: window.RECSYNC_ANALYTICS_CONFIG ? window.RECSYNC_ANALYTICS_CONFIG.apiUrl + '/v1/events/' : "https://api.recsync.com/v1/events/",
         apiKey: window.RECSYNC_ANALYTICS_CONFIG ? window.RECSYNC_ANALYTICS_CONFIG.apiKey : "",
         analyticsUrl: "http://127.0.0.1:3000/analytics.js"
     };
@@ -55,8 +55,11 @@
             }
 
             const script = document.createElement('script');
-            script.src = '/modules/recsync/views/js/analytics.js';
+            script.src = RECSYNC_CONFIG.analyticsUrl;
             script.setAttribute('data-disable-purchase-events', 'true');
+            script.setAttribute('data-client-id', RECSYNC_CONFIG.clientId);
+            script.setAttribute('data-client-secret', RECSYNC_CONFIG.apiKey);
+            script.setAttribute('data-api-url', RECSYNC_CONFIG.apiUrl);
             script.onload = () => {
                 this.analyticsLoaded = true;
             };
@@ -69,7 +72,7 @@
             productElements.forEach((element, index) => {
                 const productData = this.extractProductData(element);
                 if (productData) {
-                    const viewData = {
+                    element._recsyncProductData = {
                         ...productData,
                         recommendation_context: true,
                         recommendation_position: index + 1,
@@ -77,8 +80,6 @@
                         page_title: document.title,
                         currency: 'USD'
                     };
-                    
-                    this.trackEvent('view_item', viewData);
                 }
             });
         }
@@ -93,28 +94,82 @@
         }
         
         handleProductClick(element, event) {
-            const productData = this.extractProductData(element);
-            if (productData) {
-                const clickData = {
-                    ...productData,
-                    recommendation_context: true,
-                    click_type: 'recommendation_click',
-                    page_location: window.location.href,
-                    page_title: document.title,
-                    currency: 'USD'
-                };
-                
-                this.trackEvent('recommendation_click', clickData);
+            const productId = element.getAttribute('data-id-product');
+            
+            console.log('RecSync: Product click detected, productId:', productId);
+            
+            if (productId) {
+                // Get product data from backend instead of HTML extraction
+                this.fetchProductDataFromBackend(productId, (productData) => {
+                    console.log('RecSync: Product data received from backend:', productData);
+                    
+                    if (productData) {
+                        const viewData = {
+                            ...productData,
+                            recommendation_context: true,
+                            page_location: window.location.href,
+                            page_title: document.title,
+                            currency: 'USD'
+                        };
+                        
+                        console.log('RecSync: Sending view_item event with data:', viewData);
+                        this.trackEvent('view_item', viewData);
+                    } else {
+                        console.warn('RecSync: No product data received from backend');
+                    }
+                });
+            } else {
+                console.warn('RecSync: No product ID found on clicked element');
             }
+        }
+        
+        fetchProductDataFromBackend(productId, callback) {
+            const baseUrl = window.location.origin + window.location.pathname.split('/').slice(0, -1).join('/');
+            const endpointUrl = baseUrl + '/modules/recsync/controllers/front/productdata.php';
+            const params = new URLSearchParams({
+                id_product: productId
+            });
+            
+            fetch(endpointUrl + '?' + params.toString(), {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Referer': window.location.href
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success && data.product_data) {
+                    callback(data.product_data);
+                } else {
+                    console.warn('RecSync: Failed to fetch product data from backend:', data.error || 'Unknown error');
+                    callback(null);
+                }
+            })
+            .catch(error => {
+                console.warn('RecSync: Error fetching product data from backend:', error);
+                callback(null);
+            });
         }
         
         extractProductData(element) {
             const productId = element.getAttribute('data-id-product');
-            const productName = element.querySelector('.product-name, h3, h4, a')?.textContent?.trim() || 'Product';
+            
+            // Extract product name from h3.product-title > a
+            const productNameElement = element.querySelector('h3.product-title a, .product-title a, h3 a');
+            const productName = productNameElement?.textContent?.trim() || 'Product';
+            
             const productPrice = this.extractPrice(element);
-            const productCategory = element.getAttribute('data-category') || 
-                                  element.querySelector('[data-category]')?.getAttribute('data-category') || 
-                                  'Unknown';
+            
+            // Extract category from data-category attribute
+            const productCategory = element.getAttribute('data-category') || 'Unknown';
             
             return {
                 item_id: productId,
@@ -146,7 +201,12 @@
         }
         
         trackEvent(eventName, eventData) {
-            if (!RECSYNC_CONFIG.telemetryEnabled) return;
+            console.log('RecSync: trackEvent called with:', eventName, eventData);
+            
+            if (!RECSYNC_CONFIG.telemetryEnabled) {
+                console.warn('RecSync: Telemetry disabled, skipping event');
+                return;
+            }
             
             const eventKey = `${eventName}_${eventData.item_id}_${Date.now()}`;
             
@@ -160,6 +220,7 @@
             );
             
             if (similarEvent) {
+                console.log('RecSync: Similar event found recently, skipping');
                 return;
             }
             
@@ -208,12 +269,16 @@
             
             if (this.analyticsLoaded && window.analytics) {
                 try {
+                    console.log('RecSync: Sending to analytics.js:', eventName, eventPayload);
                     window.analytics.track(eventName, eventPayload);
                 } catch (error) {
-                    // Silently handle errors
+                    console.error('RecSync: Error sending to analytics.js:', error);
                 }
+            } else {
+                console.log('RecSync: Analytics.js not available, sending directly to API');
             }
             
+            console.log('RecSync: Sending to RecSync API:', eventPayload);
             this.sendToRecSyncAPI(eventPayload);
         }
         
@@ -238,6 +303,13 @@
         }
         
         getUserId() {
+            // Use backend configuration first (more reliable)
+            if (window.RECSYNC_ANALYTICS_CONFIG && window.RECSYNC_ANALYTICS_CONFIG.isLoggedIn && window.RECSYNC_ANALYTICS_CONFIG.customerId) {
+                localStorage.removeItem('dl_anon_user_id');
+                return String(window.RECSYNC_ANALYTICS_CONFIG.customerId);
+            }
+            
+            // Fallback to PrestaShop object
             if (window.prestashop && window.prestashop.customer && window.prestashop.customer.isLoggedIn) {
                 const customerId = window.prestashop.customer.id_customer;
                 
@@ -247,6 +319,7 @@
                 }
             }
             
+            // Generate anonymous ID if not logged in
             let anonId = localStorage.getItem('dl_anon_user_id');
             if (!anonId) {
                 anonId = 'anon_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);

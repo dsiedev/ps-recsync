@@ -225,12 +225,21 @@
         }
 
         if (productId) {
+            // Try to extract category ID
+            let categoryId = null;
+            const categoryElement = document.querySelector('[data-category-id], .category-id');
+            if (categoryElement) {
+                categoryId = categoryElement.getAttribute('data-category-id') || 
+                            categoryElement.textContent?.trim() || null;
+            }
+
             return {
                 item_id: productId,
                 item_name: productName || 'Product',
                 price: productPrice || 0,
                 quantity: 1,
-                item_category: productCategory || 'Unknown'
+                item_category: productCategory || 'Unknown',
+                item_category_id: categoryId
             };
         }
 
@@ -651,7 +660,8 @@
                     item_name: item.item_name,
                     price: parseFloat(item.price) || 0,
                     quantity: parseInt(item.quantity) || 1,
-                    item_category: item.item_category
+                    item_category: item.item_category,
+                    item_category_id: item.item_category_id
                 })),
                     user_id: this.getUserId(),
                 session_id: this.getSessionId(),
@@ -672,7 +682,8 @@
                         item_name: item.item_name,
                         price: parseFloat(item.price) || 0,
                         quantity: parseInt(item.quantity) || 1,
-                        item_category: item.item_category
+                        item_category: item.item_category,
+                        item_category_id: item.item_category_id
                     })),
                     user_type: (window.RECSYNC_ANALYTICS_CONFIG && window.RECSYNC_ANALYTICS_CONFIG.isLoggedIn) ? 'logged_in' : 'anonymous',
                     customer_id: (window.RECSYNC_ANALYTICS_CONFIG && window.RECSYNC_ANALYTICS_CONFIG.isLoggedIn) ? window.RECSYNC_ANALYTICS_CONFIG.customerId : null,
@@ -692,7 +703,8 @@
                         item_name: eventData.item_name,
                         price: eventData.price,
                         quantity: eventData.quantity,
-                        item_category: eventData.item_category
+                        item_category: eventData.item_category,
+                        item_category_id: eventData.item_category_id
                     }],
                     user_id: this.getUserId(),
                     session_id: this.getSessionId(),

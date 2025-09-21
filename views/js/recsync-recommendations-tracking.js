@@ -171,12 +171,16 @@
             // Extract category from data-category attribute
             const productCategory = element.getAttribute('data-category') || 'Unknown';
             
+            // Extract category ID from data-category-id attribute
+            const productCategoryId = element.getAttribute('data-category-id') || null;
+            
             return {
                 item_id: productId,
                 item_name: productName,
                 price: productPrice,
                 quantity: 1,
-                item_category: productCategory
+                item_category: productCategory,
+                item_category_id: productCategoryId
             };
         }
         
@@ -245,7 +249,8 @@
                     item_name: eventData.item_name,
                     price: eventData.price,
                     quantity: eventData.quantity,
-                    item_category: eventData.item_category
+                    item_category: eventData.item_category,
+                    item_category_id: eventData.item_category_id
                 }],
                 user_id: this.getUserId(),
                 session_id: this.getSessionId(),

@@ -97,8 +97,13 @@ try {
     foreach ($products as $product) {
         // Obtener categoría real del producto
         $categoryName = 'Unknown';
+        $categoryId = null;
         if (isset($product['category_name']) && !empty($product['category_name'])) {
             $categoryName = $product['category_name'];
+            // Try to get category ID from product data
+            if (isset($product['id_category_default'])) {
+                $categoryId = (string)$product['id_category_default'];
+            }
         } else {
             // Intentar obtener categoría desde el objeto Product
             try {
@@ -106,6 +111,7 @@ try {
                 if ($productObj->id_category_default) {
                     $category = new Category($productObj->id_category_default, Context::getContext()->language->id);
                     $categoryName = $category->name ?? 'Unknown';
+                    $categoryId = (string)$productObj->id_category_default;
                 }
             } catch (Exception $e) {
                 // Si no se puede obtener la categoría, usar Unknown
@@ -117,7 +123,8 @@ try {
             'item_id' => $product['product_reference'] ?: 'PS_' . $product['product_id'],
             'price' => (float)$product['unit_price_tax_incl'],
             'quantity' => (int)$product['product_quantity'],
-            'item_category' => $categoryName
+            'item_category' => $categoryName,
+            'item_category_id' => $categoryId
         ];
     }
     

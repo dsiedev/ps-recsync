@@ -120,7 +120,7 @@ try {
         
         $orderData['items'][] = [
             'item_name' => $product['product_name'],
-            'item_id' => $product['product_reference'] ?: 'PS_' . $product['product_id'],
+            'item_id' => (string)$product['product_id'],
             'price' => (float)$product['unit_price_tax_incl'],
             'quantity' => (int)$product['product_quantity'],
             'item_category' => $categoryName,

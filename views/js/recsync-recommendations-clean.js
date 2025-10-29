@@ -184,26 +184,25 @@
                     item_name: eventData.item_name,
                     price: eventData.price,
                     quantity: eventData.quantity,
-                    item_category: eventData.item_category
-                }],
-                user_id: this.getUserId(),
-                session_id: this.getSessionId(),
-                timestamp: new Date().toISOString(),
-                page_location: eventData.page_location || window.location.href,
-                page_title: eventData.page_title || document.title,
-                data: {
-                    item_name: eventData.item_name,
-                    item_id: eventData.item_id,
-                    price: eventData.price,
-                    quantity: eventData.quantity,
-                    currency: eventData.currency || 'USD',
+                    item_category: eventData.item_category,
+                    item_category_id: eventData.item_category_id,
+                    item_variant: null,
+                    item_data: {},
+                    referrer: null,
+                    value: null,
+                    params: null,
                     recommendation_context: eventData.recommendation_context || false,
                     recommendation_position: eventData.recommendation_position || null,
                     click_type: eventData.click_type || null,
                     user_type: (window.RECSYNC_ANALYTICS_CONFIG && window.RECSYNC_ANALYTICS_CONFIG.isLoggedIn) ? 'logged_in' : 'anonymous',
                     customer_id: (window.RECSYNC_ANALYTICS_CONFIG && window.RECSYNC_ANALYTICS_CONFIG.isLoggedIn) ? window.RECSYNC_ANALYTICS_CONFIG.customerId : null,
                     user_id_reference: localStorage.getItem('dl_user_id_reference') || null
-                }
+                }],
+                user_id: this.getUserId(),
+                session_id: this.getSessionId(),
+                timestamp: new Date().toISOString(),
+                page_location: eventData.page_location || window.location.href,
+                page_title: eventData.page_title || document.title
             };
             
             if (this.analyticsLoaded && window.analytics) {

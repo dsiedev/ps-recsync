@@ -592,9 +592,7 @@
          * Refresh recommendations (for future use)
          */
         refresh() {
-            // This could be used to refresh recommendations via AJAX
-            console.log('RecSync: Refresh requested');
-        }
+            // This could be used to refresh recommendations via AJAX}
 
         /**
          * Get statistics

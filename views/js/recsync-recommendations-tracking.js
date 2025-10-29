@@ -94,26 +94,16 @@
         }
         
         handleProductClick(element, event) {
-            const productId = element.getAttribute('data-id-product');
-            
-            console.log('RecSync: Product click detected, productId:', productId);
-            
-            if (productId) {
+            const productId = element.getAttribute('data-id-product');if (productId) {
                 // Get product data from backend instead of HTML extraction
-                this.fetchProductDataFromBackend(productId, (productData) => {
-                    console.log('RecSync: Product data received from backend:', productData);
-                    
-                    if (productData) {
+                this.fetchProductDataFromBackend(productId, (productData) => {if (productData) {
                         const viewData = {
                             ...productData,
                             recommendation_context: true,
                             page_location: window.location.href,
                             page_title: document.title,
                             currency: 'USD'
-                        };
-                        
-                        console.log('RecSync: Sending view_item event with data:', viewData);
-                        this.trackEvent('view_item', viewData);
+                        };this.trackEvent('view_item', viewData);
                     } else {
                         console.warn('RecSync: No product data received from backend');
                     }
@@ -204,10 +194,7 @@
             return 0;
         }
         
-        trackEvent(eventName, eventData) {
-            console.log('RecSync: trackEvent called with:', eventName, eventData);
-            
-            if (!RECSYNC_CONFIG.telemetryEnabled) {
+        trackEvent(eventName, eventData) {if (!RECSYNC_CONFIG.telemetryEnabled) {
                 console.warn('RecSync: Telemetry disabled, skipping event');
                 return;
             }
@@ -223,9 +210,7 @@
                 key.startsWith(`${eventName}_${eventData.item_id}_`)
             );
             
-            if (similarEvent) {
-                console.log('RecSync: Similar event found recently, skipping');
-                return;
+            if (similarEvent) {return;
             }
             
             this.sentEvents.add(eventKey);
@@ -250,41 +235,32 @@
                     price: eventData.price,
                     quantity: eventData.quantity,
                     item_category: eventData.item_category,
-                    item_category_id: eventData.item_category_id
-                }],
-                user_id: this.getUserId(),
-                session_id: this.getSessionId(),
-                timestamp: new Date().toISOString(),
-                page_location: eventData.page_location || window.location.href,
-                page_title: eventData.page_title || document.title,
-                data: {
-                    item_name: eventData.item_name,
-                    item_id: eventData.item_id,
-                    price: eventData.price,
-                    quantity: eventData.quantity,
-                    currency: eventData.currency || 'USD',
+                    item_category_id: eventData.item_category_id,
+                    item_variant: null,
+                    item_data: {},
+                    referrer: null,
+                    value: null,
+                    params: null,
                     recommendation_context: eventData.recommendation_context || false,
                     recommendation_position: eventData.recommendation_position || null,
                     click_type: eventData.click_type || null,
                     user_type: (window.RECSYNC_ANALYTICS_CONFIG && window.RECSYNC_ANALYTICS_CONFIG.isLoggedIn) ? 'logged_in' : 'anonymous',
                     customer_id: (window.RECSYNC_ANALYTICS_CONFIG && window.RECSYNC_ANALYTICS_CONFIG.isLoggedIn) ? window.RECSYNC_ANALYTICS_CONFIG.customerId : null,
                     user_id_reference: localStorage.getItem('dl_user_id_reference') || null
-                }
+                }],
+                user_id: this.getUserId(),
+                session_id: this.getSessionId(),
+                timestamp: new Date().toISOString(),
+                page_location: eventData.page_location || window.location.href,
+                page_title: eventData.page_title || document.title
             };
             
             if (this.analyticsLoaded && window.analytics) {
-                try {
-                    console.log('RecSync: Sending to analytics.js:', eventName, eventPayload);
-                    window.analytics.track(eventName, eventPayload);
+                try {window.analytics.track(eventName, eventPayload);
                 } catch (error) {
                     console.error('RecSync: Error sending to analytics.js:', error);
                 }
-            } else {
-                console.log('RecSync: Analytics.js not available, sending directly to API');
-            }
-            
-            console.log('RecSync: Sending to RecSync API:', eventPayload);
-            this.sendToRecSyncAPI(eventPayload);
+            } else {}this.sendToRecSyncAPI(eventPayload);
         }
         
         sendToRecSyncAPI(eventPayload) {

@@ -40,6 +40,7 @@ class Recsync extends Module
             $this->registerHook('header') &&
             $this->registerHook('actionPresentProduct') &&
             $this->registerHook('actionValidateOrder') &&
+            $this->registerHook('displayFooterProduct') &&
             $this->installConfiguration() &&
             $this->installDatabase() &&
             $this->installAdminTab();
@@ -48,6 +49,7 @@ class Recsync extends Module
     public function uninstall()
     {
         return parent::uninstall() &&
+            $this->unregisterHook('displayFooterProduct') &&
             $this->uninstallConfiguration() &&
             $this->uninstallDatabase() &&
             $this->uninstallAdminTab();
@@ -108,7 +110,7 @@ class Recsync extends Module
             
             // Module Status
             'RECSYNC_ENABLED' => 1,
-            'RECSYNC_DEBUG_ENABLED' => 0,
+            'RECSYNC_DEBUG_ENABLED' => 0, // Deshabilitado para producción
         ];
 
         foreach ($configs as $key => $value) {
@@ -211,42 +213,14 @@ class Recsync extends Module
      */
     public function hookDisplayHome($params)
     {
-        // Debug logging
-        $debugEnabled = Configuration::get('RECSYNC_DEBUG_ENABLED');
-        if ($debugEnabled) {
-            PrestaShopLogger::addLog(
-                'RecSync Debug: hookDisplayHome called',
-                1,
-                null,
-                'Recsync',
-                $this->id
-            );
-        }
+        // Module enabled check
         
         $moduleEnabled = Configuration::get('RECSYNC_ENABLED');
         if (!$moduleEnabled) {
-            if ($debugEnabled) {
-                PrestaShopLogger::addLog(
-                    'RecSync Debug: Module not enabled (RECSYNC_ENABLED = ' . ($moduleEnabled ? 'true' : 'false') . ')',
-                    1,
-                    null,
-                    'Recsync',
-                    $this->id
-                );
-            }
             return '';
         }
 
         try {
-            if ($debugEnabled) {
-                PrestaShopLogger::addLog(
-                    'RecSync Debug: Starting hookDisplayHome execution',
-                    1,
-                    null,
-                    'Recsync',
-                    $this->id
-                );
-            }
             
             $apiClient = new RecsyncApiClient();
             $cache = new RecsyncCache();
@@ -254,15 +228,6 @@ class Recsync extends Module
             
             // Get context
             $context = $this->buildContext();
-            if ($debugEnabled) {
-                PrestaShopLogger::addLog(
-                    'RecSync Debug: Context built successfully',
-                    1,
-                    null,
-                    'Recsync',
-                    $this->id
-                );
-            }
             
             // Try to get recommendations from cache first
             $cacheKey = $this->generateCacheKey($context);
@@ -633,10 +598,11 @@ class Recsync extends Module
             
             $orderData['items'][] = [
                 'item_name' => $product['product_name'],
-                'item_id' => $product['product_reference'] ?: 'PS_' . $product['product_id'],
+                'item_id' => (string)$product['product_id'],
                 'price' => $product['unit_price_tax_incl'],
                 'quantity' => $product['product_quantity'],
-                'item_category' => $categoryName
+                'item_category' => $categoryName,
+                'item_category_id' => (string)$product['id_category_default']
             ];
         }
         
@@ -837,44 +803,49 @@ class Recsync extends Module
         }
         
         $products = [];
-        $externalIds = [];
+        $productIds = [];
+        
+        // Extract numeric product IDs from API structure
         foreach ($recommendations['recommendations'] as $rec) {
-            if (isset($rec['id'])) {
-                $externalIds[] = $rec['id'];
+            if (isset($rec['product']['id'])) {
+                // New API structure - direct product ID
+                $productIds[] = (int)$rec['product']['id'];
+            } elseif (isset($rec['id'])) {
+                // Fallback for old API structure
+                $externalId = $rec['id'];
+                if (strpos($externalId, 'PS_') === 0) {
+                    // Extract numeric ID from PS_ prefix
+                    $productIds[] = (int)substr($externalId, 3);
+                } elseif (is_numeric($externalId)) {
+                    // Direct numeric ID
+                    $productIds[] = (int)$externalId;
+                }
+                // Skip non-numeric references
             }
         }
         
-        if (empty($externalIds)) {
+        if (empty($productIds)) {
             return [];
         }
         
-        // Query products by reference (external_id) or by ID if external_id starts with 'PS_'
-        $referenceIds = [];
-        $productIds = [];
+        // Filter only numeric product IDs
+        $numericIds = [];
         
-        foreach ($externalIds as $externalId) {
-            if (strpos($externalId, 'PS_') === 0) {
-                $productIds[] = (int)substr($externalId, 3);
-            } else {
-                $referenceIds[] = $externalId;
+        foreach ($productIds as $id) {
+            if (is_numeric($id)) {
+                $numericIds[] = (int)$id;
             }
         }
         
+        if (empty($numericIds)) {
+            return [];
+        }
+        
+        // Build simplified SQL query - only by product ID
         $sql = 'SELECT p.id_product, p.reference, p.active
                 FROM ' . _DB_PREFIX_ . 'product p
-                WHERE p.active = 1';
-        
-        if (!empty($referenceIds)) {
-            $sql .= ' AND p.reference IN ("' . implode('","', array_map('pSQL', $referenceIds)) . '")';
-        }
-        
-        if (!empty($productIds)) {
-            if (!empty($referenceIds)) {
-                $sql .= ' OR p.id_product IN (' . implode(',', $productIds) . ')';
-            } else {
-                $sql .= ' AND p.id_product IN (' . implode(',', $productIds) . ')';
-            }
-        }
+                WHERE p.active = 1
+                AND p.id_product IN (' . implode(',', $numericIds) . ')';
         
         $results = Db::getInstance()->executeS($sql);
         
@@ -882,21 +853,31 @@ class Recsync extends Module
             return [];
         }
         
-        // Create mapping for both references and product IDs
+        // Create simple mapping for product IDs
         $productMap = [];
         foreach ($results as $row) {
-            $productMap[$row['reference']] = $row['id_product'];
-            $productMap['PS_' . $row['id_product']] = $row['id_product'];
+            $productMap[$row['id_product']] = $row['id_product'];
         }
         
         // Build final product list with scores
         foreach ($recommendations['recommendations'] as $rec) {
-            $externalId = $rec['id'];
+            $productId = null;
             $score = $rec['score'] ?? 0;
             
-            if (isset($productMap[$externalId])) {
-                $productId = $productMap[$externalId];
-                
+            // Extract numeric product ID
+            if (isset($rec['product']['id'])) {
+                $productId = (int)$rec['product']['id'];
+            } elseif (isset($rec['id'])) {
+                $externalId = $rec['id'];
+                if (strpos($externalId, 'PS_') === 0) {
+                    $productId = (int)substr($externalId, 3);
+                } elseif (is_numeric($externalId)) {
+                    $productId = (int)$externalId;
+                }
+            }
+            
+            // Only process if we have a valid numeric product ID
+            if ($productId && isset($productMap[$productId])) {
                 // Check stock if required
                 if (Configuration::get('RECSYNC_EXCLUDE_OUT_OF_STOCK')) {
                     $product = new Product($productId, false, $this->context->language->id);
@@ -909,13 +890,23 @@ class Recsync extends Module
                 $productData = $this->getProductData($productId);
                 if ($productData) {
                     $productData['score'] = $score;
+                    $productData['recommendation_type'] = $rec['type'] ?? 'unknown';
+                    $productData['recommendation_reason'] = $rec['reason'] ?? '';
+                    $productData['recommendation_priority'] = $rec['priority'] ?? 0;
                     $products[] = $productData;
                 }
             }
         }
         
-        // Sort by score
+        // Sort by priority first, then by score
         usort($products, function($a, $b) {
+            $priorityA = $a['recommendation_priority'] ?? 0;
+            $priorityB = $b['recommendation_priority'] ?? 0;
+            
+            if ($priorityA !== $priorityB) {
+                return $priorityA <=> $priorityB;
+            }
+            
             return $b['score'] <=> $a['score'];
         });
         
@@ -1617,4 +1608,17 @@ class Recsync extends Module
             return [];
         }
     }
+
+    /**
+     * Hook for product footer (view_item tracking)
+     */
+    public function hookDisplayFooterProduct($params)
+    {
+        if (!Configuration::get('RECSYNC_ENABLED') || !Configuration::get('RECSYNC_TELEMETRY_ENABLED')) {
+            return '';
+        }
+
+        return $this->display(__FILE__, 'views/templates/hook/product-buttons.tpl');
+    }
 }
+

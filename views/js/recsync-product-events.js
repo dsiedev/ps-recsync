@@ -72,18 +72,10 @@
                 input[value*="Add"],
                 input[value*="cart"],
                 .btn-primary[form*="add_to_cart"]
-            `);
-
-            console.log('RecSync: Found', addToCartButtons.length, 'add to cart buttons');
-
-            addToCartButtons.forEach((button, index) => {
+            `);addToCartButtons.forEach((button, index) => {
                 // Check if already has our listener
                 if (!button.hasAttribute('data-recsync-tracked')) {
-                    button.setAttribute('data-recsync-tracked', 'true');
-                    console.log('RecSync: Setting up add to cart tracking for button', index, button);
-                    button.addEventListener('click', (event) => {
-                        console.log('RecSync: Add to cart button clicked', button);
-                        this.handleAddToCartClick(button, event);
+                    button.setAttribute('data-recsync-tracked', 'true');button.addEventListener('click', (event) => {this.handleAddToCartClick(button, event);
                     });
                 }
             });
@@ -115,9 +107,7 @@
                 }
             });
             
-            if (shouldCheck) {
-                console.log('RecSync: New buttons detected, setting up tracking');
-                setTimeout(setupButtons, 100);
+            if (shouldCheck) {setTimeout(setupButtons, 100);
             }
         });
 
@@ -128,30 +118,20 @@
         });
     }
 
-    handleAddToCartClick(button, event) {
-        console.log('RecSync: Handling add to cart click');
-        
-        // Extract product data from the button or surrounding elements
+    handleAddToCartClick(button, event) {// Extract product data from the button or surrounding elements
         const productData = this.extractProductDataFromButton(button);
         
         if (productData && productData.item_id) {
             // If we only have basic data (like "Product" as name), fetch from backend
-            if (productData.item_name === 'Product' || !productData.item_name) {
-                console.log('RecSync: Product data incomplete, fetching from backend');
-                this.fetchProductDataFromBackend(productData.item_id, (backendData) => {
+            if (productData.item_name === 'Product' || !productData.item_name) {this.fetchProductDataFromBackend(productData.item_id, (backendData) => {
                     if (backendData) {
                         const addToCartData = {
                             ...backendData,
                             page_location: window.location.href,
                             page_title: document.title,
                             currency: 'USD'
-                        };
-                        
-                        console.log('RecSync: Sending add_to_cart event with backend data:', addToCartData);
-                        this.trackEvent('add_to_cart', addToCartData);
-                    } else {
-                        console.log('RecSync: Backend fetch failed, using fallback data');
-                        const addToCartData = {
+                        };this.trackEvent('add_to_cart', addToCartData);
+                    } else {const addToCartData = {
                             ...productData,
                             page_location: window.location.href,
                             page_title: document.title,
@@ -167,10 +147,7 @@
                     page_location: window.location.href,
                     page_title: document.title,
                     currency: 'USD'
-                };
-                
-                console.log('RecSync: Sending add_to_cart event with extracted data:', addToCartData);
-                this.trackEvent('add_to_cart', addToCartData);
+                };this.trackEvent('add_to_cart', addToCartData);
             }
         } else {
             console.warn('RecSync: Could not extract product data for add to cart event');
@@ -704,23 +681,21 @@
                         price: eventData.price,
                         quantity: eventData.quantity,
                         item_category: eventData.item_category,
-                        item_category_id: eventData.item_category_id
+                        item_category_id: eventData.item_category_id,
+                        item_variant: null,
+                        item_data: {},
+                        referrer: null,
+                        value: null,
+                        params: null,
+                        user_type: (window.RECSYNC_ANALYTICS_CONFIG && window.RECSYNC_ANALYTICS_CONFIG.isLoggedIn) ? 'logged_in' : 'anonymous',
+                        customer_id: (window.RECSYNC_ANALYTICS_CONFIG && window.RECSYNC_ANALYTICS_CONFIG.isLoggedIn) ? window.RECSYNC_ANALYTICS_CONFIG.customerId : null,
+                        user_id_reference: localStorage.getItem('dl_user_id_reference') || null
                     }],
                     user_id: this.getUserId(),
                     session_id: this.getSessionId(),
                     timestamp: new Date().toISOString(),
                     page_location: eventData.page_location,
-                    page_title: eventData.page_title,
-                    data: {
-                        item_name: eventData.item_name,
-                        item_id: eventData.item_id,
-                        price: eventData.price,
-                        quantity: eventData.quantity,
-                        currency: eventData.currency,
-                        user_type: (window.RECSYNC_ANALYTICS_CONFIG && window.RECSYNC_ANALYTICS_CONFIG.isLoggedIn) ? 'logged_in' : 'anonymous',
-                        customer_id: (window.RECSYNC_ANALYTICS_CONFIG && window.RECSYNC_ANALYTICS_CONFIG.isLoggedIn) ? window.RECSYNC_ANALYTICS_CONFIG.customerId : null,
-                        user_id_reference: localStorage.getItem('dl_user_id_reference') || null
-                    }
+                    page_title: eventData.page_title
                 };
             }
             
